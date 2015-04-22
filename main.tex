@@ -1,0 +1,56 @@
+\documentclass{sig-alternate}
+
+\usepackage{url}
+%\usepackage[caption=false]{subfig}
+\usepackage{subcaption}
+
+%\usepackage{amssymb}
+%\usepackage{amsmath}
+\usepackage{color}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xspace}
+\usepackage{graphicx}
+
+% shortcut
+\newcommand{\etc}{{etc.}\@\xspace}
+\newcommand{\ie}{{i.e.}\@\xspace}
+\newcommand{\etal}{{et al.}\@\xspace}
+\newcommand{\eg}{{e.g.}\@\xspace}
+\newcommand{\aka}{{aka}\@\xspace}
+\newcommand{\comment}[1] {\textbf{\color{red}{Comment: #1}}}
+\renewcommand{\algorithmicforall}{\textbf{for each}}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
+
+% \usepackage{setspace} % squeeze the vertical space in algorithm
+
+% \makeatletter
+% \renewcommand{\ALG@beginalgorithmic}{\small}
+% \makeatother
+
+% variables
+\def\fin{finish\_time}
+\def\trans{transfer\_time}
+
+\graphicspath{{figs/}}
+
+\begin{document}
+
+\title{Understanding the Impact of Network Quality on User Experience in Voice Search}
+\author{}
+
+\maketitle
+
+\input{dataset}
+\input{voice-recognition}
+% \input{web-search}
+% \input{voice-web}
+
+\bibliographystyle{ieeetr}
+\bibliography{reference}
+
+\end{document}
