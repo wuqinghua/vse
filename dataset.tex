@@ -1,6 +1,6 @@
 %!TEX root = main.tex
 
-\section{Preliminaries and Dataset}
+\section{Dataset and Preliminaries}
 \label{sec:dataset}
 
 In this section, we begin with real-world voice search measurements which motivate the questions in understanding the impact of network quality on user perceived performance, and explain the analysis methodology toward addressing these questions.
@@ -9,7 +9,7 @@ In this section, we begin with real-world voice search measurements which motiva
 
 We collect voice search data from Qihoo 360, which is one of the largest service providers in China, with market share about 30\% in web search, serving more than 400 million people per day\footnote{http://so.360.cn}. The process of voice search is illustrated in Figure~\ref{fig:voice_search}, which contains two subsequent phases: voice recognition and web search. Mobile client first uploads the voice data and gets the recognized text from voice recognition server, then requests service with the recognized text as the keyword from web search server. The requests in both phases are issued via standard HTTP protocol, in two different TCP flows. We collect packet-level data from front-end servers, thus the dataset is divided into two collections, corresponding to the two phases in voice search process. The latency between front-end servers and the servers that really serve the requests is below 1~ms, which is negligible in the whole latency that consumers experience. We collect the data from March 16th, 2015 to April 19th, 2015. The dataset consists of about 1 million voice search flows.
 
-All the data requests are from mobile apps, especially from Android platform, either via cellular network or WiFi network. We divide each collection of data into three categories according to which ISP the request is from. There are three major ISP's in the dataset: China Telecom (CT), China Unicom (CU) and China Mobile (CM). All the three ISP's provide both cellular data network and wireless network accesses. Among the three ISP's, CT provides CDMA (2G) and CDMA2000 (3G), CU provides GPRS (2G) and WCMDA (3G), CM provides GPRS (2G), TD-CDMA (3G) and TD-LTE (4G). The ratio of cellular data flows over all flows is about 2.5\% in all three ISP's.
+All the data requests are from mobile apps, especially from Android platform, either via cellular network or WiFi network. In the dataset, requests are from three major ISP's in China: China Telecom (CT), China Unicom (CU) and China Mobile (CM). All the three ISP's provide both cellular data network and wireless network accesses. Among the three ISP's, CT provides CDMA (2G) and CDMA2000 (3G), CU provides GPRS (2G) and WCMDA (3G), CM provides GPRS (2G), TD-CDMA (3G) and TD-LTE (4G). The data belonging to 4G occupies a quite small fraction, which could be omitted. The ratio of cellular data flows to all flows is about 2.5\% in all three ISP's.
 
 \begin{figure}[th]
 	\centering
@@ -20,9 +20,34 @@ All the data requests are from mobile apps, especially from Android platform, ei
 
 \subsection{Measurements and Metrics}
 
-We divide the analysis framework into two parts according to which phase the flow belongs to. The reasons are as follows. First, the two parts are located in different flows of two independent phases. Second, the performance in the two phases is affected by different factors. Servers act as receivers in voice uploading phase, and senders in web search phase. Essentially, as a sender-driven transmission protocol, TCP's transmission performance is basically affected by the efficiency that sender could handle congestion events, as well as the capability that receiver could receive data.Last but not least, different factors could be collected in the two phases. In voice recognition, at most three RTT's could be measured, in establishing, terminating connections, as well as transmitting the ``recognized text'' packet. Besides, we could not distinguish whether a packet is retransmitted or reordered by network. However, in web search phase, plenty of RTT's could be measured. Furthermore, we could identify each packet loss, retransmission, or reordering event in web search phase.
+We divide the analysis framework into two parts according to which phase the flow belongs to: voice recognition and web search. The reasons are as follows. First, the two parts are located in different flows of two independent phases. Second, the performance in the two phases is affected by different factors. Servers act as receivers in voice uploading phase, and senders in web search phase. Essentially, as a sender-driven transmission protocol, TCP's transmission performance is basically affected by the efficiency that sender could handle congestion events, as well as the capability that receiver could receive data.
 
-We mainly investigate the impact of network quality on the user-perceived performance in voice search. Thus, the time unrelated to network factors is not considered, such as time consumed by voice recognition.
+We mainly investigate the impact of network quality on the user-perceived performance in voice search. Thus, the time unrelated to network factors is not considered, such as time consumed when translating voice data into text.
+
+\begin{figure}[th]
+\centering
+\begin{subfigure}[b]{0.8\linewidth}
+	\includegraphics[width=\textwidth]{voice_finish_time}
+\caption{Voice recognition}
+\label{fig:voice_finish_time}
+\end{subfigure} \\
+%\vspace{0.1in}
+\begin{subfigure}[b]{0.8\linewidth}
+	\includegraphics[width=\textwidth]{web_finish_time}
+\caption{Web search}
+\label{fig:web_finish_time}
+\end{subfigure}
+\caption{CDFs of finish time in the two phases.}
+\label{fig:finish_time}
+\end{figure}
+
+To depict the user-perceived performance in voice recognition and web search, we define performance metric $finish\_time$, measured in seconds. This metric represents the duration from client initiates to establish the connection till the time that the last byte of data is acknowledged. Note that mobile client is the sender in voice recognition and is the receiver in web search. In web search service, there are also other files transmitted in different flows, like CSS and JavaScript files. We only concern the flow carrying web search result, because it is dynamic content, whose transmission performance could not be optimized through local caching. As we could not determine the exact time when the SYN packet is transmitted in voice recognition, we use the time when the SYN packet is received to approximate the beginning of the duration, which we will detail later by Figure~\ref{fig:voice_estimate_rtt}.
+
+Figure~\ref{fig:finish_time} shows the Cumulative Distribution Function (CDF) of the time consumed in the two phases. From Figure~\ref{fig:voice_finish_time}, the overall finish time of flows in 2G/3G in shorter than that of flows in WiFi network. The median values of finish time in the three access types are 0.069s in WiFi, 0.045s in 2G, and 0.044s in 3G, respectively. We also see that more than a large fraction of of voice recognition flows (60\% in WiFi and 80\% in 2G/3G) experience latency of less than 0.1s. However, a non-negligible fraction of flows (5\% in WiFi, and 2\% in 2G/3G) takes more than 1 second to upload the voice data.
+
+Figure~\ref{fig:web_finish_time} shows the CDF of finish time of web search flows. In the figure, the overall finish time of flows in 2G and 3G (with median values 0.013s and 0.011s) in also shorter than that of flows in WiFi network (with median value 0.2s). More than 25\% of flows in all networks experience finish time less than 0.1 second. However, 5\% of flows in 2G network and 18\% in WiFi network experience finish time more than 1 second. Furthermore, about 3\% of flows in WiFi network are with finish time more than 10 seconds, which is a great performance degradation.
+
+The finish time of flows in web search is 2-3 times higher than that of flows in voice recognition. This does not mean that understanding and optimizing the performance of voice recognition flows is not as important as that of web search flows. The reasons are follows. First, some of voice recognition flows suffer from timeout retransmission, which is a great performance degradation~\cite{flach2013reducing}. Second, a non-negligible fraction of voice recognition flows (5\% in WiFi) experience finish time larger than 1 second. These bad user-perceived performance also inspires us to understand what factors and how they impact finish time in voice recognition flows.
 
 \begin{figure}[th]
 \centering
@@ -41,28 +66,11 @@ We mainly investigate the impact of network quality on the user-perceived perfor
 \label{fig:flow_size}
 \end{figure}
 
-Figure~\ref{fig:flow_size} plots the distribution of flow sizes in the two phases. It is worth noting that the packet carrying text in voice recognition and the HTTP GET packet in web search are not calculated in the flow size. Figure~\ref{fig:voice_flow_size} shows the ratio of flow with various sizes, in which the $y$-axis is drawn in log scale. From the figure, nearly all flows contain no more than 6 data packets. The initial congestion window in current Android TCP/IP stack is set to 10 segments\cite{dukkipati2010argument}, which means the voice data could be transmitted in the first congestion window. Figure~\ref{fig:web_flow_size} shows the Cumulative Distribution Function (CDF) of flow sizes in web search. From the figure, all flows are with less than 100 data packets, in which a large fraction of flows (64\%) are with size in range between 5 and 30 packets. There are also flows with no search result, resulting in one data packet in the flow, which occupy 15\% of flows.
+Next, we investigate the distribution of flow size (in packet) in the two phases, which is shown in Figure~\ref{fig:flow_size}. It is worth noting that flow size does not include the packet carrying text in voice recognition and the HTTP GET packet in web search. Figure~\ref{fig:voice_flow_size} shows the ratio of flows with various sizes, in which the $y$-axis is drawn in log scale. From the figure, nearly all flows contain no more than 6 data packets. Among all access types, about 80\% of voice recognition flows are with 3 data packets. The initial congestion window in current Android TCP/IP stack is set to 10 segments\cite{dukkipati2010argument}, which means the voice data could be transmitted in the initial congestion window.
 
-\begin{figure}[th]
-\centering
-\begin{subfigure}[b]{0.8\linewidth}
-	\includegraphics[width=\textwidth]{voice_finish_time}
-\caption{Voice recognition}
-\label{fig:voice_finish_time}
-\end{subfigure} \\
-%\vspace{0.1in}
-\begin{subfigure}[b]{0.8\linewidth}
-	\includegraphics[width=\textwidth]{web_finish_time}
-\caption{Web search}
-\label{fig:web_finish_time}
-\end{subfigure}
-\caption{CDFs of time consumed in the two phases.}
-\label{fig:finish_time}
-\end{figure}
+Figure~\ref{fig:web_flow_size} shows the CDF of flow sizes in web search. From the figure, all flows are with less than 100 data packets, in which a large fraction of flows are with size in range between 4 and 30 packets. There are also flows with no search result, resulting in one data packet in the flow, which occupy 15\% of flows. The median value of flow size in WiFi network is smaller than that of flows in 2G/3G network. This may be induced by different customized designs for different access types.
 
-Figure~\ref{fig:finish_time} shows the CDF of the time consumed in the two phases. From Figure~\ref{fig:voice_finish_time}, we could see that more than 60\% of voice recognition flows experience latency of less than 100~ms. However, a non-negligible fraction of flows (3\% in CT and CU, and 11\% in CM) experience more than 1 second to upload the voice data. As in most of flows, mobile client could transmit all the voice data in the initial congestion window, the relatively large time values show that the voice recognition performance degrades due to network factors, like large RTT, packet loss, and TCP stack inefficiency. To depict the user-perceived performance in voice recognition and web search, we define performance metric $finish\_time$, measured in seconds. This metric represents the duration from client initiates to establish the connection till the time that the last byte is acknowledged. Note that mobile client is the sender in voice recognition and is the receiver in web search. As we could not determine the exact time when the SYN packet is transmitted in voice recognition, we use the time when the SYN packet is received to approximate the beginning of the duration.
-
-Figure~\ref{fig:web_finish_time} shows the CDF of $finish\_time$ of web search flows. In the figure, 20\% of flows experience $finish\_time$ less than 0.1 second. However, 7\% of flows (28\% in CM) experience $finish\_time$ more than 1 second. Furthermore, about 3\% of flows are with $finish\_time$ more than 10 seconds, which is a great performance degradation. As shown in Figure~\ref{fig:web_flow_size}, the flow size in web search ranges from 1 to 100 packets. This means that the data could be transmitted in 1 RTT at least, and more than 4 RTT at most. Considering the various flow sizes, the metric $finish\_time$ could not portray the efficiency that the data is delivered. To eliminate the affect of flow size, we introduce one more performance metric $trans\_speed$, defined as the average time to transmit a data packet. The metric $trans\_speed$ could be represented as $\frac{finish\_time}{\#(pkts)}$.
+The flow size in web search ranges from 1 to 100 packets. This means that the data could be transmitted in 1 RTT at least, and more than 4 RTT at most. Considering the various flow sizes, the metric $finish\_time$ could not portray the efficiency that the data is delivered. To eliminate the affect of flow size, we introduce one more performance metric transmission speed ($trans\_speed$), defined as the average time to transmit a data packet. The metric $trans\_speed$ could be represented as $\frac{finish\_time}{\#(pkts)}$.
 
 To evaluate the impact of network quality on user experience in voice search, we mainly consider the following network factors in the analysis:
 
@@ -85,7 +93,7 @@ To unveil the impact of network factors on user-perceived performance in voice s
 
 Correlation coefficient is the natural approach to depict the interaction between two variables. Here we use Pearson Correlation Coefficient (PCC) to quantify the magnitude of relationship between network factors and performance metrics in voice search service. PCC is a measure of linear correlation between two numeric variable $x$ and $y$. PCC determines the correlation coefficient via formula $\text{corr}(x,y) = \frac{\text{cov}(x,y)}{\text{dev}(x) \text{dev}(y)}$, where $\text{cov}(.,.)$ is the covariance function, and $\text{dev}(.)$ is the standard deviation. The correlation coefficient ranges from -1 to 1, where -1 represents total negative correlation, 0 is no correlation, and -1 is total positive correlation.
 
-We group the data into bins with appropriate interval values, like 40~ms in RTT, and compute the mean performance value. The bin index and the average value in each bin are the input of PCC to investigate their relation. We use the binned data instead of the original data due to the following reasons. Instead of studying performance in specific flows, we, in this paper, attempt to understand how network factors impact the performance metrics. Thus we bin the data to eliminate the noise in data. Besides, the binned value is more direct viewing and easier to compute.
+We group the data into bins with appropriate interval values, like number of lost packets, and compute the mean performance value. The bin index and the average value in each bin are the input of PCC to investigate their relation. We use the binned data instead of the original data due to the following reasons. Instead of studying performance in specific flows, we, in this paper, attempt to understand how network factors impact the performance metrics. Thus we bin the data to eliminate the noise in data. Besides, the binned value is more direct viewing and easier to compute.
 
 \subsubsection{Quasi-Experimental Design (QED)}
 
