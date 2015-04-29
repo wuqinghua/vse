@@ -1,10 +1,6 @@
 %!TEX root = main.tex
 
-\section{Analysis of Voice Recognition Flows}
-
-In this section, we first describe the framework that is used to analyze the factors related to user performance in voice recognition, then make use of the framework to analyze their impact, and finally summarize the results.
-
-\subsection{Analysis Framework}
+\section{Analysis of Voice Recognition}
 
 \begin{figure}[th]
 \centering
@@ -13,31 +9,128 @@ In this section, we first describe the framework that is used to analyze the fac
 \label{fig:voice_estimate_rtt}
 \end{figure}
 
-Figure~\ref{fig:voice_estimate_rtt} shows the time-line in voice recognition flow. From client side, the finish time is from that client initiates the connection to that client receives all acknowledgments of the voice data, \ie $t^c_a - t^c_s$. From server side, finish time is approximated as $(t^s_t - t^s_s) - (t^s_r - t^s_v)$, where $t^s_v$ is the time that server receives all voice data, which is the duration between the time that server establishes connection and that server receives acknowledgment of the recognized text, excluding the time consumed when translating voice into text. Mainly as a receiver, server could measure at most 3 RTT's in voice recognition, which are also illustrated in Figure~\ref{fig:voice_estimate_rtt}. The three RTT's corresponds to the duration for establishing connection ($t^s_a - t^s_s$), transmitting recognized text ($t^s_t - t^s_r$), and terminating the connection.
+Voice recognition consists of mobile terminals uploading the voice data and server returning back the recognized query text. Figure~\ref{fig:voice_estimate_rtt} shows the typical time-line of a voice recognition flow. The following web search is initialized by mobile clients once they receive the recognized text at $t^c_a$. That said, the finish time of a recognition flow measures the duration from $t^c_s$ to $t^c_a$. But we do not have these two timestamps from server side where we collected our datasets. Alternatively, we approximate the finish time with $T_s=t^s_t - t^s_s$. This finish time however includes the time consumed by servers automatically translating speech to text ($T_r=t^s_r - t^s_v$), which is not relevant to network performance\footnote{The time duration needed for translating voice to text is dependent on the used speech recognition technologies and we are not allowed by Qihoo to contain this statistic.} and out of our interests in this paper. We thus redefine the finish time as $T_s-T_r$.
+
+\begin{figure}[th]
+	\centering
+	\includegraphics[width=0.8\linewidth]{voice_flow_size}
+	\caption{The number of voice data packets in voice recognition flows.}
+	\label{fig:voice_flow_size}
+\end{figure}
+
+We can observe from Figure~\ref{fig:voice_estimate_rtt} that the finish time can be approximated by $2\times RTT$ plus the time duration for the the voice data uploading if no packet loss happens. We measure the number of voice data packets in all flows in Figure~\ref{fig:voice_flow_size} for the three major access types, where $y$-axis is in log scale. Independent of the access type, 80\% of voice recognition flows contains no more 3 voice data packets and nearly all flows contain no more than 7 data packets. Given that the initial congestion window in current Android TCP/IP stack is set to 10 segments\cite{dukkipati2010argument}, the voice data could be transmitted in the initial congestion window. However, since any packets (including SYN) might be delayed, disordered or dropped by network, the finish time might vary greatly. In what follows, we will look at each TCP performance factor and its impact on flow finish time. 
+
+
+\subsection{Impact of RTT}
+
+As illustrated in Figure~\ref{fig:voice_estimate_rtt}, we can measure at most 3 RTTs from the server side in a voice recognition flow. However, RTT is ambiguous when the corresponding segments for RTT measures are retransmitted. To tackle this problem, we use the following methodology to determine the minimal RTT. If there is no retransmission of SYN packet, $t^s_a - t^s_s$ is used as the RTT of the flow, i.e. the RTT is measured during 3WHS. Otherwise, the RTT measured during connection termination is preferred if the FIN packet is not retransmitted. In the case that both of the above RTTs are ambiguous, $t^s_t - t^s_r$ is used as the measured RTT. We have verified using our datasets that $t^s_a - t^s_s$ is the minimal RTT in more than 60\% of flows, and is less than 2 times of the minimal RTT in 95\% of flows. Thus it is reasonable to assume that the RTT measured using the above methodology is close to the minimal RTT of the flow.
+
+\begin{figure}[th]
+\centering
+	\includegraphics[width=0.8\linewidth]{voice_rtt}
+\caption{Distribution for RTT of voice recognition flows.}
+\label{fig:voice_rtt}
+\end{figure}
+
+Figure~\ref{fig:voice_rtt} plots the distribution for measured RTT of individual voice recognition flows. 2G and 3G flows experience similar RTT with a median around 0.03 second. WiFi flows on the other hand exhibit a higher RTT with a median around 0.05. In particular, while 95\% of 2G/3G flows have a RTT less than 0.1 second, as many as 20\% of WiFi flows have a RTT larger than this value. 
+
+\begin{figure}[th]
+\centering
+	\includegraphics[width=0.8\linewidth]{voice_rtt_finish_time}
+\caption{Impact of RTT on finish time.}
+\label{fig:v_rtt_time}
+\end{figure}
+
+RTT is a major factor that affects TCP performance. We further examine the impact of RTT on flow finish time in Figure \ref{fig:v_rtt_time}. We observe that for flows with RTT no larger than 0.2 second, the finish time increases in proportional to the RTT: the ratio of finish time to RTT is about 2.5 for 2G/3G flows and about 4 for WiFi flows. As we explained in Figure \ref{fig:voice_estimate_rtt}, the finish time is approximately $2RTT$ plus the time for voice data uploading. Thus, the difference of the ratio between cellular network and WiFi network comes from the time for data uploading. One possibility is that the RTT during data transferring in WiFi network is significantly larger than the RTT measured during connection establishment (i.e. 3WHS) \cite{UM-CS-2012-022}, where we obtained most of the RTTs. It seems that 2G and 3G networks provide similar performance in terms of RTT during 3WHS and data transferring. 
+
+The finish time becomes extremely large when RTT is beyond 0.2 second. Such a large RTT is an indication of network congestion as in TCP Vegas\cite{brakmo1995tcp} and FastTCP\cite{wei2006fast}. In other words, it is likely that the flow is traversing congested network and may encounter packet loss, which takes a relatively long time for recovery.
+
+\subsection{Impact of packet disordering}
+\label{sec:v_pd}
+
 
 \begin{figure*}[th]
 \centering
 	\includegraphics[scale=0.7]{voice_flow_estimate_retrans}
-\caption{Server could not distinguish network congestion event when receiving voice data.}
+\caption{Server could not distinguish packet reordering events, which are (a) network reordering, (b) fast retransmit, and (c) timeout retransmission. Server may identify some timeout retransmissions as long packet delay (d).}
 \label{fig:voice_flow_estimate_retrans}
 \end{figure*}
 
-RTT is ambiguous when the corresponding segment is retransmitted. To investigate the impact of RTT on finish time, we use the following strategy to determine the minimal RTT. If there is no retransmission of SYN packet, $t^s_a - t^s_s$ is used as the RTT of the flow. Otherwise, the RTT when server terminates the connection is used, if the FIN packet is not retransmitted. When both of the two RTT's above are ambiguous, $t^s_t - t^s_r$ is exploited. We have verified in the web search dataset that $t^s_a - t^s_s$ is the minimal RTT in more than 60\% of flows, and is less than 2 times of the minimal RTT in 95\% of flows. Thus it is reasonable to assume that the measured RTT from server side could represent the minimal RTT from client side in voice recognition.
+Another factor that could heavily impact the finish time is the network congestion events, which include packet loss, fast retransmit, packet delay and packet reordering. However, as a TCP receiver, server could not identify the exact network congestion event. For example, server observe the same packet sequence number for Figure~\ref{fig:voice_flow_estimate_retrans}(a), \ref{fig:voice_flow_estimate_retrans}(b) and \ref{fig:voice_flow_estimate_retrans}(c), despite that they depict 3 types of congestion: packet reordering in Figure~\ref{fig:voice_flow_estimate_retrans}(a), fast retransmit in Figure~\ref{fig:voice_flow_estimate_retrans}(b) and timeout retransmission in Figure~\ref{fig:voice_flow_estimate_retrans}(c). Moreover, the server is also not able to identify whether the packet is a retransmitted packet or a delayed packet in \ref{fig:voice_flow_estimate_retrans}(d). These observations show the hardness of performing TCP analysis at server side for uploading sessions. 
 
-Besides the estimation of RTT, server could not distinguish network congestion event when receiving data from client, which is exemplified in Figure~\ref{fig:voice_flow_estimate_retrans}. In Figure~\ref{fig:voice_flow_estimate_retrans}(a), there are packets reordered by network, which has the same appearance at server side as that with fast retransmission in Figure~\ref{fig:voice_flow_estimate_retrans}(b). Actually, there is no packet loss in the former case, while there is in the latter case. In Figure~\ref{fig:voice_flow_estimate_retrans}(c), client retransmitted segment 5 when RTO timer is triggered. Server could not detect that the packet is retransmitted or reordered, but only sense that the packet is delayed for a longer time, compared to other packets. In fact, server could only detect unnecessary retransmission when receiving the same data packet twice, and notifies the spurious retransmission to client via Duplicate SACK~\cite{rfc3078}, which is shown in Figure~\ref{fig:voice_flow_estimate_retrans}(d).
+% accurately identify the congestion event in Figure~\ref{fig:voice_flow_estimate_retrans}(d) is a timeout retransmission, the client retransmits the segment 5 when RTO timer is triggered, which could be caused by either the previous sent segment 5 is lost or delayed. Server in this case could not detect whether the packet is a retransmitted packet or a delayed packet. In fact, server can only detect unnecessary retransmission when receiving the same data packet twice, and notifies the spurious retransmission to client via Duplicate SACK~\cite{rfc3078} as shown in Figure~\ref{fig:voice_flow_estimate_retrans}(d). 
 
-To depict network congestion, we need two more metrics besides RTT: packet reordering and timeout retransmission. We use the number of disordered packets to represent the severity of packet reordering, which is defined as follows. In receiving sequence $S_1, S_3, S_4, S_2$, the packet $S_2$ is disordered, thus the number of disordered packets is 1. In the following, we will take packet reordering as an indication of network congestion and study the impact of network reordering on finish time.
+We thus directly use the number of disordered packets, a metric that server can accurately obtained, to capture the network congestion characteristics. In the example shown in Figure~\ref{fig:voice_flow_estimate_retrans}(a), the number of disordered packets is 1. As we show in Figure~\ref{fig:voice_flow_estimate_retrans}, a disordered packet seen by the serve could be caused by either packet reordering, fast retransmit or timeout retransmission. We show the distribution for the number of disordered packets in Table~\ref{tab:voice_reorder}.
 
-Timeout retransmission corresponds to more severe network congestion. As illustrated in the figure above, timeout retransmission could not be directly identified by server when receiving voice data. We rely on the following estimation to detect timeout retransmission. In TCP/IP stack, RTO timer is set to SRTT + max(200ms, 4 RTTVAR)\cite{rfc62982011computing}, where SRTT is approximated to RTT, and RTTVAR is approximated to RTT/2. Thus RTO could be represented as RTT + max(200ms, 2 RTT). For each packet, there is an estimated arrival time, calculated according to that of preceding and subsequent packets. If the gap between actual arrival time and the estimated arrival time is larger than RTT + max(200ms, 2 RTT), it is identified as a RTO. In the following, we also investigate the impact of timeout retransmission on finish time in voice recognition.
+\begin{table}[th]
+\caption{Distribution for the number of disordered packets.}
+\label{tab:voice_reorder}
+\centering
+\renewcommand{\arraystretch}{1.1}
+\begin{tabular}{c|c|c|c}
+\toprule
+\# disord. pkts & WiFi & 2G & 3G \\
+\hline
+0 & 96.7\% & 94.4\% & 93.3\% \\
+%\hline
+1 & 3.03\% & 5.5\% & 6.6\% \\
+%\hline
+%2 & 0.1\% & - & - \\
+%\hline
+$\ge$2 & 0.2\% & - & - \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-\subsection{Analyzing the impact on Finish Time}
+As expected, the majority of flows experience no packet disordering. But we did observe that more than 5\% of 2G/3G flows and 3\% of WiFi flows have one disordered packet. The fraction of flows having more than 2 disordered flows is negligible. Given that in most cases, the voice data only consists of 3 packets, even one disordered packet could severely degrade the uploading performance as shown in Figure \ref{fig:voice_reorder}.
 
-In this section, we first show the poor performance that voice recognition flows experience, which inspires us to understand how the network condition leads to such results.
+
+\begin{figure}[th]
+\centering
+	\includegraphics[width=0.8\linewidth]{voice_reorder}
+\caption{Impact of packet disordering on finish time.}
+\label{fig:voice_reorder}
+\end{figure}
+
+We can see from Figure \ref{fig:voice_reorder} that one disordered packet in 2G/3G uploading flows could increase the median finish time from 10 ms to 60 ms, while for WiFi flows we even observe as many as 20\% of those suffering from packet disordering cannot finish the uploading within 1 second. When receiving a disordered packet, server feeds back to the client with SACK (as shown in Figure~\ref{fig:voice_flow_estimate_retrans}(b)). Client will retransmit the packet in the hole (\ie the disordered packet) after collecting 3 SACKs. In the case that not sufficient number of SACKs can be collected, client has to rely on timeout retransmission for a RTO, which can be several times or tens of RTT. That said, the increased finish time might be caused by either packet delay, fast retransmit or timeout retransmission as stated in Figure~\ref{fig:voice_flow_estimate_retrans}. Unfortunately, we cannot identify how much each of these congestion events contributes using the datasets collected from server side.
+
+The significance of the impact of packet disordering on finish time is also dependent on RTT, because both the waiting time for fast retransmit and timeout retransmission timer (i.e. RTO) depend on the RTT. To further assess the objective impact of packet reordering by excluding the possible effect of other covariates (like RTT), we implement a non-parametric factorial analysis framework using a Quasi Experimental Design (QED) \cite{krishnan2013video}. In QED, each uniformly sampled individual $u$ is compared with an individual $v$ randomly selected from those that have identical covariates with $u$ but the cause variable (packet reordering in our context). And thus, any outcome difference between these two individuals can be attributed to the cause variable we are tracking. 
+
+In detail, we bin the voice recognition flows of each access type into two groups: those with no disordered packet ($G_1$) and those with 1 disordered packet ($G_2$). For each flow $u \in G_1$, we randomly choose a flow $v$ from $G_2$ that has similar RTT (i.e. the difference is less than 40 ms) and and the same condition whether encountering a timeout retransmission that is identified by the methodology in Section \ref{sec:v_rto}. We record the outcome difference as $o_{u,v} = (finish\_time_{v} - finish\_time_{u}) / finish\_time_{u})$. Finally, we average all the outcome differences over the matched pairs and use this average difference to gauge the impact of packet disordering.
+
+\begin{table}[th]
+\caption{QED results for the impact of packet disordering.}
+\label{tab:voice_qed_reorder}
+\centering
+\renewcommand{\arraystretch}{1.1}
+\begin{tabular}{c|c|c|c}
+	\toprule
+	 & WiFi & 2G & 3G \\
+	\midrule
+	QED & 6.42 & 3.37 & 4.45 \\
+	\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:voice_qed_reorder} presents the QED results, which show that only one disordered packet can lead to an increase of finish time by $3-6$ times. The larger finish time increase of WiFi flows than 2G/3G flows is possibly because the packet disordering events observed by servers for WiFi flows are more likely to be timeout retransmission. The observations imply that the performance of short TCP flows for uploading is very sensitive to the network characteristics. 
+
+\subsection{Impact of timeout retransmission}\label{sec:v_rto}
+
+\begin{figure}[th]
+\centering
+	\includegraphics[width=0.8\linewidth]{voice_rtt_rto_ratio}
+\caption{Distribution of RTO/RTT}
+\label{fig:rto_rtt}
+\end{figure}
+
+Timeout retransmission indicates a severe network congestion that would takes a RTO for recovery. As we have shown in Figure  \ref{fig:voice_flow_estimate_retrans}, the server is unable to directly identify a timeout retransmission. We thus rely on the time gap between actual arrival time and the estimated arrival time of individual packets to detect timeout retransmissions, where the estimated arrival time is calculated according to that of preceding and subsequent packets. For example, given receiving data packets $s_1, s_3, s_2$, the estimated arrival time of $s_2$ is the mean value of the arrival time of $s_1$ and $s_3$. In the case that this gap is even larger than RTO, the transmission of the packet is identified as a timeout retransmission. However, the server does not know the client-side RTO. We thus have to estimate the RTO. RTO in TCP implementation is set to $\text{SRTT} + max(200ms, 4 \text{ RTTVAR})$\cite{rfc62982011computing}, where SRTT is close to RTT, and RTTVAR is approximately $RTT/2$, i.e. $\widehat{RTO} \approx RTT + max(200ms, 2 RTT)$. It is noteworthy that the timeout retransmissions identified using the above methodology show the same behavior as that illustrated in Figure \ref{fig:voice_flow_estimate_retrans}(d). As such, they are not overlapped with the those shown in Figure \ref{fig:voice_flow_estimate_retrans}(d), which are identified as packet disordering flows in Section \ref{sec:v_pd}.
+
+Figure \ref{fig:rto_rtt} plots the distribution of RTO/RTT. We can observe the RTO is around several time of RTT, but can be as large as 20$-$30 times of RTT. As a time retransmission takes a RTO for recovery, our observation reveals the extremely large impact of timeout retransmission that could have on flow finish time.
 
 \begin{table}[th]
 \centering
-\renewcommand{\arraystretch}{1.2}
-\caption{Percentage of flows with timeout retransmission in different access types.}
+\renewcommand{\arraystretch}{1.1}
+\caption{Flows with timeout retransmission.}
 \label{tab:voice_stats}
 \begin{tabular}{l|c|c|c}
 	\toprule
@@ -45,176 +138,27 @@ In this section, we first show the poor performance that voice recognition flows
 	\midrule
 	% packet reordering & 3.2\% & 5.6\% & 6.2\% \\
 	% \hline
-	SYN retransmission & 2.6\% & 1.4\% & 0.8\% \\
+	3WHS retx & 2.6\% & 1.4\% & 0.8\% \\
 	\hline
-	data timeout retransmission & 9.5\% & 8.0\% & 7.3\% \\
+	data retx & 9.5\% & 8.0\% & 7.3\% \\
 	% \hline
 	% incomplete transmission & 0.2\% & 0.3\% & 2.4\% \\
 	\bottomrule
 \end{tabular}
 \end{table}
 
-Table~\ref{tab:voice_stats} shows the percentage of flows with timeout retransmission in each access type. The timeout retransmission could happen during 3-way handshake, or in data transmission.
+Table~\ref{tab:voice_stats} lists the percentage of flows that suffer from at least one timeout retransmission. The timeout retransmission could happen either during 3-way handshake (3WHS) or in data transmission. While the timeout retransmission during 3WHS is less likely to happen compared with timeout retransmission during data uploading, its impact might be even larger. This is because the initial RTO is set to 1 second \cite{rfc62982011computing} as there is no RTT measured. This RTO value is often much larger than that computed during data uploading. Users might quit the app during this the time period for recovery. 
 
-In the table, about $0.8\% \sim 2.6\%$ of flows encounter RTO when establishing connections, which is named SYN retransmission. Flows in WiFi network are more likely to experience SYN retransmission than those in 2G/3G network. SYN retransmission greatly harms the finish time due to two reasons. First, the time for establishing connections is irrelevant to data transmission, yet occupies huge portion of flow latency. Second, the initial RTO is set to 1 second \cite{rfc62982011computing} as there is no RTT measured. When the SYN packet is dropped, it has to wait at least 1 second for retransmission, which is another great penalty to the finish time.
-
-About $7.3\% \sim 9.5\%$ of flows experience timeout retransmission when transferring data packets. Also flows in WiFi network are more likely to have timeout retransmission than those in 2G/3G network. However, the disparity of flows with data timeout retransmission among different access types is not that large, compared to SYN retransmission. In voice recognition flows, timeout retransmission has a devastating effect on the performance, and is easy to be activated. Most of voice recognition flows have no more than 6 data packets. When one of the last three packets is dropped, sender has to rely on RTO for retransmission. Compared to the ideal data transmission time, RTO is often tens of, or even hundreds of times higher \cite{flach2013reducing}.
-
-% Table~\ref{tab:voice_stats} also shows the percentage of incomplete flows. An extreme case is that the percentage of incomplete flows is 2.4\% in CM. The flow is terminated before finishing data transmission, either by TCP stack after several RTO's, or by consumer after waiting for an intolerably long time. The non-negligible ratio of incomplete flows indicates poor user-perceived performance, which motivates us to understand the reasons behind.
-
-\begin{table}[th]
-\caption{The average RTT value and number of disordered packets in different access types.}
-\label{tab:voice_access_type_stats}
-\centering
-\renewcommand{\arraystretch}{1.2}
-\begin{tabular}{l|l|l|l}
-	\toprule
-	& WiFi & 2G & 3G \\
-	\midrule
-	RTT (s) & 0.119 & 0.067 & 0.054 \\
-	\hline
-	\#(disordered packets) & 0.012 & 0.019 & 0.020 \\
-	\bottomrule
-\end{tabular}
-\end{table}
-
-Table~\ref{tab:voice_access_type_stats} shows the average RTT and number of disordered packets of each flow for different access types. From the table, we could see that flows in different access types experience different network conditions. For example, compared to flows in cellular network (2G/3G), the flows in WiFi network have larger RTT values, yet fewer disordered packets. The average RTT value in WiFi network is one time larger than that in 2G/3G network; however, the average number of disordered packets in WiFi is nearly one half of that in 2G/3G network.
-
-\begin{figure}[th]
-	\centering
-	\includegraphics[width=0.8\linewidth]{voice_flow_size}
-	\caption{The distribution of flow sizes in voice recognition.}
-	\label{fig:voice_flow_size}
-\end{figure}
-
-First, we study the impact of flow size on finish time in voice recognition. The distribution of flow sizes are shown in Figure~\ref{fig:voice_flow_size}, in which the $y$-axis is drawn in log scale.. Note that flow size does not include the packet carrying text in voice recognition. From the figure, nearly all flows contain no more than 6 data packets. Among all access types, about 80\% of voice recognition flows are with 3 data packets. The initial congestion window in current Android TCP/IP stack is set to 10 segments\cite{dukkipati2010argument}, which means the voice data could be transmitted in the initial congestion window.
-
-We use Kendall correlation coefficient to inspect their relationship in the three access types. The absolute values of the coefficients are less than 0.003, which demonstrates that the finish time is completely irrelevant to the flow size. As the voice data in most of flows could be packed within the initial congestion window from client side. Thus ideally finish time is 2 times the RTT value, one for establishing connection, and one for transmitting data.
+Regardless of the access type, we observe as many as over 7\% of the voice data uploading flows suffer from at least one timeout retransmission. Such a large fraction of timeout retransmission flows can be explained by the fact that almost all the voice recognition flows contain no more than 6 voice data packets. When one of the last three packets is dropped, the sender (i.e. client) has to rely on RTO for retransmission. This behavior is similar to the tail lost one identified in \cite{flach2013reducing}. But in the voice data uploading context, the server is no longer a sender and thus unable to eliminate such kind of RTO retransmissions by gently send redundant packets as proposed in \cite{flach2013reducing}. Our results highlight the necessary of TCP optimization for uploading from server side. 
 
 \begin{figure}[th]
 \centering
-	\includegraphics[width=0.8\linewidth]{voice_rtt}
-\caption{The distribution of RTT's in voice recognition flows.}
-\label{fig:voice_rtt}
-\end{figure}
-
-Next, we study the impact of RTT on the finish time in voice recognition. Figure~\ref{fig:voice_rtt} shows the CDF of RTT's in voice recognition. From the figure, cellular network (with median RTT value 0.033s) presents smaller RTT's than WiFi network (with median RTT value 0.049s). About 95\% of flows in cellular network have RTT smaller than 0.1s, while 20\% of flows in WiFi network have RTT larger than 0.1s. The different distributions of RTT's in different access types make us to investigate the impact of RTT separately.
-
-\begin{table}[th]
-\caption{Finish time under different RTT values in cellular network using QED.}
-\label{tab:voice_celluar_qed_rtt}
-\centering
-\renewcommand{\arraystretch}{1.2}
-\begin{tabular}{l|m{.35in}|m{.35in}}
-	\toprule
-	RTT bin (s) & 2G & 3G \\
-	\midrule
-	$[$ 0.01, 0.02 ) & 5.12 & 3.71 \\
-	\hline
-	$[$ 0.02, 0.03 ) & 6.20 & 5.06 \\
-	\hline 
-	$[$ 0.03, 0.04 ) & 9.94 & 10.84 \\
-	\hline 
-	$[$ 0.04, 0.05 ) & 9.56 & 11.44 \\
-	\hline 
-	$[$ 0.05, 0.06 ) & 13.73 & 15.18 \\
-	\hline 
-	$[$ 0.06, 0.07 ) & 16.74 & 16.74 \\
-	\hline 
-	$[$ 0.07, 0.08 ) & 23.50 & 18.95 \\
-	\hline 
-	$[$ 0.08, $\infty$ ) & 106.41 & 62.30 \\
-	\bottomrule
-\end{tabular}
-\end{table}
-
-In cellular network, there are less than 5\% of flows with RTT larger than 0.08s. Thus in the QED experiment, we use 0.01s interval to group the flows into 9 bins by their RTT's, and take the flows in the RTT bin $[$0, 0.01) as the baseline. For each flow in this bin, we randomly choose a flow in each of other bins, which has the same access type, equal number of disordered packets, and the same condition whether encountering timeout retransmission. The results are shown in Table~\ref{tab:voice_celluar_qed_rtt}. In the table, when the RTT value is no more than 0.08s, finish time is approximately proportional to the RTT value, which verifies our assertion above. Furthermore, when RTT value is larger than 0.08s, the finish time become incredibly large (106 times the baseline value). This could be explained as follows. Larger RTT indicates that the packets are buffered in the network for longer time, which is also a signal of network congestion, as used in TCP Vegas\cite{brakmo1995tcp} and FastTCP\cite{wei2006fast}. Thus when flow experiences large RTT, it is likely that the flow is traversing congested network, and may encounter packet loss, takes at least one RTT (or even RTO) for recovery.
-
-\begin{table}[th]
-\caption{Finish time under different RTT values in WiFi network using QED.}
-\label{tab:voice_wifi_qed_rtt}
-\centering
-\renewcommand{\arraystretch}{1.2}
-\begin{tabular}{l|l}
-	\toprule
-	RTT bin (s) & WiFi \\
-	\midrule
-	$[$ 0.04, 0.08 ) & 5.78 \\
-	\hline
-	$[$ 0.08, 0.12 ) & 10.13 \\
-	\hline
-	$[$ 0.12, 0.16 ) & 15.46 \\
-	\hline
-	$[$ 0.16, 0.20 ) & 20.17 \\
-	\hline
-	$[$ 0.20, $\infty$ ) & 70.83 \\
-	\bottomrule
-\end{tabular}
-\end{table}
-
-For WiFi data, we use 0.04s interval and takes the flows in the RTT bin $[$0, 0.04) as the baseline, the strategy to choose flows is the same as above. The QED result is shown in Table~\ref{tab:voice_wifi_qed_rtt}. Similarly, the finish time is proportional to the RTT value, except last RTT bin. When RTT is larger than 0.2s, finish time becomes 70 times the baseline value.
-
-\begin{figure}[th]
-\centering
-\includegraphics[width=3in]{voice_reorder}
-\caption{The finish time under different number of disordered packets in voice recognition.}
-\label{fig:voice_reorder}
-\end{figure}
-
-RTT affects finish time by increasing the time to acknowledge received data, while packet reordering affects finish time by increasing the number of rounds for data transmission. To study the impact of packet reordering, we first show the distribution of packet reordering in Table~\ref{tab:voice_reorder}.
-
-\begin{table}[th]
-\caption{Distribution of flows with different packet reordering in voice recognition.}
-\label{tab:voice_reorder}
-\centering
-\renewcommand{\arraystretch}{1.2}
-\begin{tabular}{c|c|c|c}
-\toprule
-\#(disordered packets) & WiFi & 2G & 3G \\
-\midrule
-0 & 96.7\% & 94.4\% & 93.3\% \\
-\hline
-1 & 3.03\% & 5.5\% & 6.6\% \\
-\hline
-2 & 0.1\% & - & - \\
-\hline
-$\ge$3 & 0.1\% & - & - \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-In the table, most of flows do not have disordered packet. Flows in WiFi network and cellular network experience different types of packet reordering. In WiFi network, the ratio of flows with disordered packets is small, while there are flows with 3 or more disordered packets. Even though cellular network have more disordered packets, there are hardly flows with 2 or more disordered packets.
-
-\begin{table}[th]
-\caption{Finish time under different number of disordered packets.}
-\label{tab:voice_qed_reorder}
-\centering
-\renewcommand{\arraystretch}{1.2}
-\begin{tabular}{c|c|c|c}
-	\toprule
-	\#(disordered packets) & WiFi & 2G & 3G \\
-	\midrule
-	1 & 7.42 & 4.37 & 5.45 \\
-	\hline
-	2 & 10.4 & - & - \\
-	\hline
-	$\ge$3 & 11.8 & - & - \\
-	\bottomrule
-\end{tabular}
-\end{table}
-
-Table~\ref{tab:voice_qed_reorder} presents the QED results showing the impact of packet reordering on finish time. In the experiment, we group the flows into bins by counting the number of disordered packets, and take the flows with no disordered packet as baseline. For each flow in the baseline, we randomly choose a flow from each of other bins, which has similar RTT value (using 0.04s interval), the same access type, and the same condition whether encountering timeout retransmission. From the table, as there are nearly no flow with 2 or more disordered packets in cellular network, the corresponding values are not calculated. When there is only one disordered packet, the finish time is 3-6 times higher than the baseline value. \textbf{How to explain this?}
-
-% Figure~\ref{fig:voice_reorder} shows the average finish time under different number of disordered packets. In cellular network, there are quite few flows with more than 1 disordered packet. Thus the corresponding bins are left blank. From the figure, in all networks, when there are disordered packets, flows experience significant performance degradation. Even when there is only 1 disordered packet, the average finish time is 2$\sim$3 times higher than that of flows without disordered packet. This could be explained as follows. If server receives packets which are not successive, it feeds back to the client with SACK. When receiving SACK, client does not retransmit the packet in the hole (\ie the disordered packet) immediately, until client receives 3 SACK's or ACK of that packet, or retransmission timer is triggered. If the packet is dropped, client needs to wait at least one RTT to retransmit the packet. If there are no sufficient number of SACK's, client has to rely on timeout retransmission (RTO). The RTO timer, as an estimate of RTT and its variation, is usually highly conservative, which is set to tens of, or even hundreds of RTT.
-
-\begin{figure}[th]
-\centering
-	\includegraphics[width=\linewidth]{voice_timeout}
+	\includegraphics[width=0.8\linewidth]{voice_timeout}
 \caption{CDF of finish time of flows with and without RTO.}
 \label{fig:voice_rto}
 \end{figure}
 
-Figure~\ref{fig:voice_rto} shows the CDF of finish time of flows with and without RTO. Note that the x-axis in the figure is plotted in log scale. From the figure, there is a remarkable performance gap between flows with RTO and that without RTO. The gap could be ten times as for the median values. If there is no RTO, client needs 2-7 RTT's to transmit the voice data (1 RTT for each packet in worst case). However, if a packet is dropped and there are no sufficient subsequent data packets, the RTO will occupy most of the finish time. Among the flows with timeout retransmission, more than 50\% of flows are with ratio RTO/RTT larger than 10, 10\% of flows are with ratio larger than 100.
+We finally compare the finish time between flows with and without timeout retransmission in Figure~\ref{fig:voice_rto}, where the x-axis is in log scale. The timeout retransmission increases the median finish time from 64 ms to 595 ms. This is not surprising given that RTO is several times of the RTT. In fact, since the number of voice data packets is relatively small ($\le 6$), which can be updated within $2\times RTTs$, the time retransmission time (i.e. RTO) will dominate the finish time of those flows that experience timeout retransmissions.  Overall, a larger fraction of WiFi flows suffer from timeout retransmission compared with 2G/3G flows, which partially explains the larger finish time observed in Figure \ref{fig:voice_finish_time}.
 
 \subsection{Summary of Voice Recognition Analysis}
 
