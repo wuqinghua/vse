@@ -12,6 +12,10 @@
 
 Web search starts when mobile terminal initiates connection to transmit query text, and ends when server receives ACKs for all returned search results. Figure~\ref{fig:web_finish_time_example} shows the typical time-line in web search flows. The finish time at client side is the duration from transmitting SYN packet $t^c_s$ to receiving all web search data $t^c_a$. We use the duration $T_s=t^s_a - t^s_s$ measured at server side to approximate the latency that user perceives. Again, we excluded the time consumed by servers processing the query $T_r=t^s_r - t^s_q$ and obtained the finish time as $T_s-T_r$.
 
+For each data packet which is not retransmitted, a measured RTT is the duration from that server transmits it, to that server receives the acknowledgment for it. In this process, we record as many RTT's as possible. When each new RTT is recorded, the RTO value is calculated via formula $RTO = SRTT + max(200ms, 4 RTTVAR)$, where $SRTT$ and $RTTVAR$ are derived from iterative calculation of each RTT, which means RTO is updated for each measured RTT. When the duration between a transmitted packet and last packet is larger than the calculated RTO, we could infer that it is a timeout retransmission. For each retransmitted packet, if server would not receive D-SACK, such a retransmission recovers a real packet loss, otherwise, the packet is not dropped and the retransmission is spurious. Note that a data segment could be retransmitted twice or more if the previously retransmitted packet is regarded as lost.
+
+In the above, we have seen that finish time in voice recognition is strongly related to the RTT value. Here we investigate the impact of RTT on finish time of web search flows. The distribution of RTT in web search is similar to that in voice recognition, which is not shown due to space limit. We use Kendall correlation to determine their relationship. The coefficient between RTT and finish time is 0.15, showing weak relationship between them. The reason is as follows. Web search result usually contains more than 10 data packets (shown in Figure~\ref{fig:web_flow_size}), which could be transmitted in 1 RTT. Moreover, how many data packets could be transmitted in one RTT is determined by congestion window size, which varies when receiving acknowledgment and packet loss event. Flows have different congestion window sizes due to different amount of congestion events in the paths they traverse. Thus RTT has limited impact on finish time in web search. 
+
 \begin{figure}[th]
 \centering
 	\includegraphics[width=0.8\linewidth]{web_flow_size}
@@ -19,14 +23,11 @@ Web search starts when mobile terminal initiates connection to transmit query te
 \label{fig:web_flow_size}
 \end{figure}
 
-Figure~\ref{fig:web_flow_size} plots the distribution of flow size (measured by the number of web search result packets) in web search. The flow size varies from 1 packet to 100 packets with a median around 10 packets. Such a small flow size implies that any TCP performance degradation (like a high packet loss) could exert a large impact on the user perceived latency (i.e. finish time) \cite{flach2013reducing}. We also observe a smaller flow size of WiFi search than that of 3G search, which might be due to the difference in search behavior \cite{Song:2013:EEU:2488388.2488493}. We use Kendall correlation to determine whether flow size is relevant to finish time. The coefficient is 0.018, which demonstrates their irrelevance. Here we also investigate the relationship between finish time and RTT. The distribution of RTT in web search is similar to that in voice recognition, which is not shown due to space limit. The coefficient between RTT and finish time is 0.15, showing weak relationship between them. The reason is as follows. Web search result should be transmitted in several RTT's. The congestion window, which determines how many packets are transmitted in one RTT, could be reduced by half due to packet loss, and increased twice if no packet loss in the RTT. Thus RTT has limited impact on finish time in web search. 
+Figure~\ref{fig:web_flow_size} plots the distribution of flow size (measured by the number of web search result packets) in web search. The flow size varies from 1 packet to 100 packets with a median around 10 packets. Such a small flow size implies that any TCP performance degradation (like a high packet loss) could exert a large impact on the user perceived latency (i.e. finish time) \cite{flach2013reducing}. We also observe a smaller flow size of WiFi search than that of 3G search, which might be due to the difference in search behavior \cite{Song:2013:EEU:2488388.2488493}. We use Kendall correlation to determine whether flow size is relevant to finish time. The coefficient is 0.018, which demonstrates their irrelevance.
 
 As a TCP sender in web search, the server can measure abundant TCP performance factors and behavior, enabling us to perform a detailed analysis of the TCP performance and its impact on the finish time. In what follows, we first characterize the finish time distribution in 3 TCP stages and then examine the impact of TCP performance factors.
 
-
-%The flow size in web search ranges from 1 to 100 packets. This means that the data could be transmitted in 1 RTT at least, and more than 4 RTT at most. Considering the various flow sizes, the metric $finish\_time$ could not portray the efficiency that the data is delivered. To eliminate the affect of flow size, we introduce one more performance metric transmission time per packet ($tpp$), defined as the average time to transmit a data packet. The metric $tpp$ could be represented as $\frac{finish\_time}{\#(pkts)}$. In the following, we mainly use transmission time per packet ($tpp$) to depict the performance of web search.
-
-\subsection{TCP Stage Anaysis}
+\subsection{TCP Stage Analysis}
 
 \begin{figure}[th]
 \centering
@@ -35,9 +36,7 @@ As a TCP sender in web search, the server can measure abundant TCP performance f
 \label{fig:web_three_stages}
 \end{figure}
 
-A TCP comprises 3 stages: \emph{3-way handshake}, \emph{slow start}, \emph{congestion avoidance}, which is exemplified in Figure~\ref{fig:web_three_stages} using a web search flow from our dataset, where $y$-axis shows the TCP sequence number. The TCP 3-way handshake (3WHS) stage ideally (i.e. without packet loss, delay and reordering) completes within 1 RTT. The server then enters the slow start stage, during which server does not encounter any packet loss or reordering event, and thus enlarges the congestion window by 1 segment size for each received ACK. The server enters congestion avoidance stage once it estimates a packet loss\footnote{The packet can actually be delayed or lost.}. In this stage, the server reduces the congestion window when detecting packet loss through fast retransmit\cite{jacobson1988congestion} and compels the congestion window to grow from 1 segment size when detecting packet loss through RTO. Note that the congestion avoidance stage here starts when server detects congestion event and ends till the flow finishes, which is different the TCP congestion avoidance state in TCP/IP stack. 
-
-
+A TCP comprises 3 stages: \emph{3-way handshake}, \emph{slow start}, \emph{congestion avoidance}, which is exemplified in Figure~\ref{fig:web_three_stages} using a web search flow from our dataset, where $y$-axis shows the TCP sequence number. The TCP 3-way handshake (3WHS) stage ideally (i.e. without packet loss, delay and reordering) completes within 1 RTT. The server then enters the slow start stage, during which server does not encounter any packet loss or reordering event, and thus enlarges the congestion window by 1 segment size for each received ACK. The server enters congestion avoidance stage once it estimates a packet loss\footnote{The packet can actually be delayed or lost.}. In this stage, the server reduces the congestion window when detecting packet loss through fast retransmit\cite{jacobson1988congestion} and compels the congestion window to grow from 1 segment size when detecting packet loss through RTO. Note that the congestion avoidance stage here starts when server detects congestion event and ends till the flow finishes, which is different the TCP congestion avoidance state in TCP/IP stack.
 
 %Figure~\ref{fig:web_three_stages} gives an exemplified flow with 3 TCP stages that we define. The $y$-axis shows the TCP sequence number. In the figure, server takes 1.8s to establish connection, 3.1s to transmit 35 data packets in slow start stage, and 15.3s to transmit the left 48 data packets in congestion avoidance stage. In the following, we use the criteria of partitioning to break the analysis down into the three stages that flows experience.
 
@@ -59,20 +58,6 @@ We first examine how much of the time spent in the 3WSH stage in Figure~\ref{fig
 
 Another important reason that explains the unexpectedly the long time in 3WSH stage (i.e. $>70\%$ of finish time) is the timeout retransmissions in this stage. As the data cannot be transmitted before a TCP connection is established, a loss of SYN will lead to a timeout retransmission, which takes 1 second (\ie the initial RTO) to retransmit the SYN.  We find that 4.4\% of WiFi search flows and 0.5\% of 3G flows experience at least one SYN timeout retransmission. We envision a possible way to mitigate the costly 3WSH in such short flows where clients maintain long-term TCP connections to the web search servers.
 
-%\begin{table}[th]
-%\centering
-%\renewcommand{\arraystretch}{1.1}
-%\caption{Percentage of flows that experience SYN retransmission in web search.}
-%\label{tab:web_syn_retrans}
-%\begin{tabular}{l|c|c|c}
-%\toprule
-%& WiFi & 2G & 3G \\
-%\midrule
-%SYN retransmission & 4.4\% & 2\% & 0.5\% \\
-%\bottomrule
-%\end{tabular}
-%\end{table}
-
 \subsubsection{Slow Start Stage}
 
 \begin{figure}[th]
@@ -86,29 +71,7 @@ The slow start stage and the congestion avoidance stage constitute the data tran
 
 Another interesting observation is that 1.5\% of the WiFi flows is unable to transmit any data in the slow start stage as the first packet is dropped. We indeed find of the flows that experience the congestion avoidance stage, the packet loss happens within the first congestion window (i.e. within the first 10 packets) for 80\% of WiFi flows, while this percentage is only 20\% for 3G flows, implying a reconsideration of the initial congestion window configuration.
 
-%This is an evidence that increasing initial congestion window to 10 segment size is not always helpful to all flows.
-
-%In the figure, 8\% - 10\% of flows could not transmit all the web search data in slow start stage, which is also the percentage of flows experiencing packet loss. Moreover, 6.5\% of flows in WiFi network and 4\% of flows in cellular network could only spend half of their transmission time in slow start stage. Particularly, 4\% of flows in WiFi network could not transmit any data in slow start stage, in which the first packet is dropped.
-%
-%\begin{figure}[th]
-%\centering
-%\includegraphics[width=0.8\linewidth]{web_slowstart_pkts}
-%\caption{Number of packets transmitted in slow start stage.}
-%\label{fig:web_ss_pkts}
-%\end{figure}
-%
-%Figure~\ref{fig:web_ss_pkts} shows the distribution of packets which could be transmitted in slow start stage. In the figure, only these flows experiencing packet loss are considered. In the considered flows, flows in WiFi network could transmit less data packets in slow start stage than those in cellular network. This could be induced by higher packet loss rate in WiFi network, which we will investigate in Section~\ref{sec:web_pkt_loss}. In particular, 85\% of the considered flows (\ie 8.1\% of all flows) in WiFi network experience packet loss in the initial congestion window. This is an evidence that increasing initial congestion window to 10 segment size is not always helpful to all flows.
-
 \subsubsection{Congestion Avoidance Stage}
-
-%\begin{figure}[th]
-%\centering
-%\includegraphics[width=0.8\linewidth]{web_ca_inflight}
-%\caption{Number of in flight packets when flows entering congestion avoidance stage.}
-%\label{fig:web_ca_inflight}
-%\end{figure}
-%
-%Figure~\ref{fig:web_ca_inflight} shows the distribution of in flight packets when flows enter congestion avoidance stage. In the figure, only these flows experiencing packet loss are considered. In flight packets are those estimated in the network (\ie not dropped) yet not acknowledged by the receiver. When encountering packet loss, the number of in flight packets could be regarded as the number of packets allowed by network that could be transmitted in one RTT. In the figure, 80\% of flows in WiFi network have no more than 12 in flight packets. In contrast, 80\% of flows in cellular network have no more than 20 in flight packets. Flows in WiFi network have smaller in flight size than those in cellular network. This means that WiFi network allocates lower bandwidth for flows than cellular network.
 
 \begin{figure}[th]
 \centering
@@ -124,69 +87,58 @@ We observe a surprisingly high ratio for WiFi flows. The median ratio is as high
 \subsection{Impact of packet loss}
 \label{sec:web_pkt_loss}
 
-\begin{figure}[th]
-\centering
-\includegraphics[width=0.8\linewidth]{web_loss_fintime_cdf}
-\caption{The distribution of finish time with and without packet loss in web search.}
-\label{fig:web_loss_fintime_cdf}
-\end{figure}
+% \begin{figure}[th]
+% \centering
+% \includegraphics[width=0.8\linewidth]{web_loss_fintime_cdf}
+% \caption{The distribution of finish time with and without packet loss in web search.}
+% \label{fig:web_loss_fintime_cdf}
+% \end{figure}
 
-As we have analyzed above, packet loss would degrade TCP performance by both reducing congestion window and possibly triggering timeout retransmission. The the web search dataset, about 9\% of flows in both WiFi and cellular network experience packet loss. However, the packet loss rates in WiFi and cellular network are 3\% and 0.9\% respectively. Figure~\ref{fig:web_loss_fintime_cdf} shows the distribution of finish time with and without packet loss in web search. In the figure, there are distinct performance gap between flows with and without packet loss. The mean finish time in flows without packet loss is about 2.5 - 5 times smaller than that of flows with packet loss.
+As we have analyzed above, packet loss would degrade TCP performance by both reducing congestion window and possibly triggering timeout retransmission. The the web search dataset, about 9\% of flows in both WiFi and cellular network experience packet loss. However, the packet loss rates in WiFi and cellular network are 3\% and 0.9\% respectively.
+
+% Figure~\ref{fig:web_loss_fintime_cdf} shows the distribution of finish time with and without packet loss in web search. In the figure, there are distinct performance gap between flows with and without packet loss. The mean finish time in flows without packet loss is about 2.5 - 5 times smaller than that of flows with packet loss.
 
 \begin{figure}[th]
 \centering
 \includegraphics[width=0.8\linewidth]{web_loss_finish_time}
-\caption{Transmission time per packet under different number of lost packets.}
+\caption{Finish time under different number of lost packets.}
 \label{fig:web_loss_finish_time}
 \end{figure}
 
-Next, we investigate how much packet loss events could increase finish time. Figure~\ref{fig:web_loss_finish_time} shows the average finish time of web search flows under different number of lost packets. In the figure, flows are grouped by counting how many lost packets in each flow, and the average finish time in each group is calculated. When there is no packet loss, the average finish time of flows in WiFi network is about 1 second, while that of flows in 3G network is only 0.3 second, which is induced by smaller RTT in 3G network. When the number of lost packets is 1, the finish time in WiFi network increases to 2.6 second, while that of flows in cellular network hardly increases, compared with those without packet loss. When the number of lost packets increases to 3 or more, the finish time of flows in both networks increases greatly.
+To quantitatively determine the impact of packet loss, we investigate how much packet loss events could increase finish time. Figure~\ref{fig:web_loss_finish_time} shows the finish time of web search flows under different number of lost packets. In the figure, flows are grouped by counting how many lost packets in each flow, and the average finish time, as well as 5 and 95 percentile of finish time in each group are calculated. When there is no packet loss, the average finish time of flows in WiFi network is about 1 second, while that of flows in 3G network is only 0.3 second, which is induced by smaller RTT in 3G network. When the number of lost packets is 1 or 2, the finish time in WiFi network increases to about 2.7 second, while that of flows in 3G network hardly increases, compared with those without packet loss. When the number of lost packets increases to 3 or more, the finish time in WiFi increases to 8.1 second, while that in 3G network increases to 0.51 second. Thus, compared with flows in 3G network, flows in WiFi experience much longer finish time under the same level of packet loss, and will suffer more severe performance degradation if the number of lost packets increases. 
 
 \subsection{Impact of timeout retransmission}
 
-\begin{table}[th]
-\caption{The average number of timeout retransmissions under different number of lost packets.}
-\label{tab:web_rto_ratio}
-\centering
-\renewcommand{\arraystretch}{1.1}
-\begin{tabular}{l|c|c|c}
-	\toprule
-	\#(lost pkts)  & 1 & 2 & $\ge$ 3 \\
-	\midrule
-	WiFi & 0.35 & 0.41 & 0.93 \\
-	\hline
-	3G & 0.02 & 0.02 & 0.06 \\
-	\bottomrule
-\end{tabular}
-\end{table}
-
-To understand how each packet loss impact finish time, we distinguish timeout retransmission from fast retransmit for each retransmission of lost packet. After that, we count the average number of timeout retransmissions in the flows within each group classified above, which is shown in Table~\ref{tab:web_rto_ratio}. From the table, when the number of lost packets is 1, there are much less timeout retransmissions in flows in 3G network, compared to those in WiFi network. This could explain why the finish time of flows in WiFi network increases a lot, while that of flows in 3G network does nearly not increase. Furthermore, the finish time under packet loss in each network is almost proportional to the average number of timeout retransmissions in that group. This indicates that when there is packet loss, timeout retransmission dominates the finish time in web search flows.
-
 \begin{figure}[th]
 \centering
-\includegraphics[width=0.8\linewidth]{web_rto_pos}
-\caption{Position of timeout retransmission occurs in flows.}
-\label{fig:web_rto_pos}
+\includegraphics[width=\linewidth]{web_loss_rto_ratio}
+\caption{The fraction of flows with timeout retransmission under different number of lost packets.}
+\label{fig:web_loss_rto_ratio}
 \end{figure}
 
-Next, we investigate how timeout retransmission is triggered by inspecting where they occur. Figure~\ref{fig:web_rto_pos} shows the position of timeout retransmission occurs in flows. In the figure, the values in the x-axis represents the relative position to the last packet, where 1 means the last packet. The lines show the cumulative fraction of timeout retransmission occurs in the last $n$ packets, where $n$ is the value in the x-axis. From the figure, timeout retransmission in the last 3 packets occupies more than 53\% of all timeout retransmission. This coincides with the study in \cite{flach2013reducing} that packet loss at flow tail is likely to trigger timeout retransmission due to insufficient number of duplicate acknowledgments. As 47\% of flows in WiFi network experience timeout retransmission not at the tail of flow, which is much higher than those in 3G network.
+To understand how each packet loss impact finish time, we distinguish timeout retransmission from fast retransmit for each retransmission of lost packet. After that, we count how many timeout retransmissions in the flows within each group classified above, which is shown in Figure~\ref{fig:web_loss_rto_ratio}. Note that the two sub-figures have different $y$-axis labels. From the figure, when the number of lost packets is 1, the number of flows with timeout retransmission in WiFi network is 16\%, much larger than that value (2\%) in 3G network. This could explain why the finish time of flows in WiFi network increases a lot, while that of flows in 3G network does nearly not increase, under 1 lost packet. When the number of lost packets increases, the fraction of flows with timeout retransmission increases in both networks. Combined with Figure~\ref{fig:web_loss_finish_time}, we could conclude that the finish time under packet loss in each network is almost proportional to the amount of timeout retransmissions there are. This indicates that when there is packet loss, timeout retransmission dominates the finish time in web search flows.
 
-Essentially, there are two scenarios that would trigger timeout retransmission. The first case is that sender does not receive sufficient number of duplicate acknowledgments (dupacks). The insufficient number of dupacks could be induced by various reasons. Besides packet loss at flow tail, packet loss under small congestion window, as well as packet delay may also trigger timeout retransmission. Packet delay is that the data packet is delayed, yet sender transmits the packet due to not receiving acknowledgment until RTO is triggered. The second case is that sender could only rely on timeout retransmission for recovery if a retransmitted packet is dropped (noted as \emph{double\_retransmission}). We propose a simple strategy to determine how each RTO is triggered in Algorithm~\ref{alg:rto}.
+The different amount of timeout retransmission in the two networks under the same number of lost packets motivates us to investigate how timeout retransmission is triggered. Essentially, there are two scenarios in which sender has to appeal timeout retransmission for loss recovery. The first scenario is when a transmitted packet is dropped by network, sender has to wait for timeout retransmission for recovery (noted as \emph{double retransmission}). 
+
+The second scenario is that sender could not receive sufficient number of duplicate acknowledgments (dupacks), which is the prerequisite of fast retransmit. The insufficiency of dupacks could be induced by various reasons. When packet loss happens in the last 3 packets of a flow, sender could not receives 3 dupacks. Timeout retransmission is triggered due to insufficient number of data packets, which is named \emph{tail retransmission}~\cite{flach2013reducing}. When the congestion window is small (\eg 1 segment size after SYN retransmission), packet loss has to be recovered by timeout transmission, which is named \emph{small congestion window retransmission}. Even if there are sufficient data packets for transmission, and congestion window size is large enough, packet loss may also be recovered by timeout retransmission. Considering the data packets $s_1, s_2, \cdots, s_n$ ($n > 3$), in which $s_1$ is dropped, the acknowledgments for $s_2, \cdots, s_n$ reach the sender with a long latency, after timeout transmission occurs. This could be induced by severe network latency jitters, or by misbehaving middle-boxes blocking the dupacks~\cite{honda2011isit}, which is named \emph{packet delay retransmission}.
+
+We propose a simple strategy to determine how each RTO is triggered in Algorithm~\ref{alg:rto}. In the algorithm, there are other timeout retransmissions which could not be classified as one of the reasons above, such as when all packets in the windows are dropped. 
 
 \begin{algorithm}
 	\caption{Process of determining the cause of RTO.}
 	\label{alg:rto}
 	\begin{algorithmic}[1]
 		\Procedure{ParseRTO}{$RTO$}
-			\If {position to tail $\le$ 3}
-				\State \textbf{return} $ tail\_retransmission$
-			\ElsIf {spurious retransmission}
-				\State \textbf{return} $ packet\_delay$
-			\ElsIf {packet has been retransmitted}
-				\State \textbf{return} $ double\_retransmission$
+			\If {packet has been retransmitted}
+				\State \textbf{return} $double\_retransmission$
+			\ElsIf {position to tail $\le$ 3}
+				\State \textbf{return} $tail\_retransmission$
+			\ElsIf {\#(in-flight packets) = 1}
+				\State \textbf{return} $small\_cwnd\_retransmission$
+			\ElsIf {only 1 in-flight packet is dropped}
+				\State \textbf{return} $packet\_delay\_retransmission$
 			\Else
-				\State {// \#(dupacks) + \#(in-flight packets) $\le$ 3}
-				\State \textbf{return} $ small\_cwnd$
+				\State \textbf{return} $others$
 			\EndIf
 		\EndProcedure
 	\end{algorithmic}
@@ -196,19 +148,23 @@ Essentially, there are two scenarios that would trigger timeout retransmission. 
 \caption{The ratio of timeout retransmissions in each type.}
 \label{tab:rto_type}
 \centering
-\renewcommand{\arraystretch}{1.1}
-\begin{tabular}{l|c|c|c|c}
-\toprule
-& tail retx & double retx & pkt delay & small cwnd \\
-\midrule
-WiFi & 53.2\% & 17.8\% & 7.3\% & 21.5\% \\
-\hline
-3G & 77.1\% & 9.1\% & 3.0\% & 10.8\% \\
-\bottomrule
+\renewcommand{\arraystretch}{1.0}
+\begin{tabular}{c|C{1.1cm}|C{1.1cm}}
+	\hline
+	\textbf{timeout retx type} & WiFi & 3G \\
+	\hline
+	tail retx & 38.3\% & 69.6\% \\
+	\hline
+	double retx & 33.8\% & 13.5\% \\
+	\hline
+	packet delay retx & 27.4\% & 16.1\% \\
+	\hline
+	small cwnd retrx & 0.3\% & 0.6\% \\
+	\hline
 \end{tabular}
 \end{table}
 
-According to the algorithm, we determine how many timeout retransmissions belongs to each type. Table~\ref{tab:rto_type} shows the ratio in each type. From the table, flows in WiFi network suffer more from double retransmission and retransmission in small congestion window, which are induced by higher packet loss rate. The diversity of reasons that trigger timeout retransmission may hinder the effort to reduce latency in short flows, like TLP~\cite{flach2013reducing}.
+According to the algorithm, we determine how many timeout retransmissions belong to each type. Table~\ref{tab:rto_type} shows the ratio in each type. From the table, tail retransmission occupies the largest fraction in both networks, which illustrates the severity of tail packet loss in short flows~\cite{flach2013reducing}. Moreover, compared with those in 3G networks, flows in WiFi network suffer more from double retransmission (33.8\%) as well as packet delay retransmission (27.4\%). The former occurs in flows with two or more lost packets, while the latter could occur even when there is only one packet loss. This explains why there are so many timeout retransmissions in flows in WiFi network. As the three major kinds of timeout retransmission are induced by various reasons: flow property (tail retransmission), TCP mechanism (double retransmission), and misbehaving middle-boxes (packet latency retransmission), to eliminate timeout retransmission may require a combination of efforts from many sides, like improving TCP protocol, application-level optimization, as well as misbehavior troubleshooting in middle-boxes.
 
 \subsection{Summary of web search analysis}
 
