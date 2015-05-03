@@ -183,12 +183,11 @@ We finally compare the finish time between flows with and without timeout retran
 
 \subsection{Summary of Voice Recognition Analysis}
 
-\textbf{zhenyu: please update.}
 The key observations on voice recognition flows are summarized as follows.
 \begin{itemize}
 	\item Almost all voice recognition flows contain less than 7 data packets, which could be fitted into the initial congestion window from Android client. Thus ideally the voice data could be transmitted in 1 RTT.
 	\item Finish time is affected by RTT. For flows with smaller RTT (less than 200ms in WiFi), the finish time is proportional to the RTT value. However, flows with larger RTT experience intolerably long finish time, caused by timeout retransmission.
 	\item Flows in WiFi network experience 2-3 times longer finish time than those in cellular network, because of larger RTT.
-	\item About 10\% of flows experience timeout retransmission when transmitting data, which make the finish time one order of magnitude larger than those without timeout retransmission.
-	\item A non-negligible fraction of flows (0.8\%-2.6\%) experience retransmission when establishing connections, which has similar impact like RTO in data transfer.
+	\item Packet reordering could increase finish time by 4-6 times. Due to small amount of data packets in the flow, packet loss is more likely to be recovered by timeout retransmission.
+	\item About 10\% of flows experience timeout retransmission either in establishing connections or transmitting data, which make the finish time one order of magnitude larger than those without timeout retransmission.
 \end{itemize}
