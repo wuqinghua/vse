@@ -1,5 +1,20 @@
 %!TEX root = main.tex
 
-\section{Discussion}
+\section{Summary and Discussion}
 \label{sec:discuss}
 
+Our study mainly focuses on the TCP performance of voice search service at server side. As voice search session consists of voice recognition and web search phases, we inspect the main factors that may impact the finish time of flows corresponding to each phase. After quantitative measurement of the flows, we obtain the following findings.
+
+\begin{itemize}
+	\item Compared to flows in 3G network, WiFi flows experience longer finish time in both phases. The deficiency of WiFi flows are induced by both longer RTT and higher packet loss rate.
+	\item If timeout retransmission occurs in a flow, it would dominate the finish time. As flows in both phases are short (less than 100 packets), which only takes less than 5  RTT's for transmission if there is no packet loss. While, timeout retransmission may occupy tens of, or even hundreds of RTT's for recovery.
+	\item Timeout retransmission could be triggered by various reasons, like SYN retransmission, tail retransmission, double retransmission, and packet delay retransmission. The reasons are located in various entities, like flow property, TCP mechanism, and misbehaving middleboxes.
+	\item Tail retransmission occupies the largest fraction in both WiFi and 3G flows, due to the small size of flows. In WiFi flows, higher packet loss rate also induces double retransmission, which involves about one third of all timeout retransmissions.
+	\item SYN retransmission occurs in a non-negligible fraction of WiFi flows. SYN packet loss takes 1 second for recovery and also compels the congestion window to start from 1 segment size.
+\end{itemize}
+
+The above findings could better guide service providers to optimize the transmission performance in voice search service. First, as smaller RTT leads to shorter finish time, service provider could deploy front-end servers nearer to clients to achieve shorter latency. Second, mobile applications could maintain TCP connections before acquiring services, which will mitigate the impact of SYN retransmission on user-perceived performance. Third, the 3G network access and WiFi network access could be combined under multipath TCP for more reliable service access~\cite{UM-CS-2012-022}, which enables dynamically offloading traffic from congested network, without breaking existing connections. Last but not least, service provider could deploy solutions like TLP~\cite{flach2013reducing} to reduce the number of tail retransmission in short flows. However, other types of timeout retransmission require great effort from service provider for mitigation, such as redesigning TCP retransmission mechanism to eliminate double retransmission, and cooperating with network provider to debug misbehaving middleboxes.
+
+The limitation of our data collection also restricts our understanding of the impact of TCP performance in voice search service. First, our dataset are collected at server sides, thus we could not determine the exact packet loss information in voice recognition flow. As packet loss plays an important role in TCP performance, which also demonstrates the difficulty of performance analysis of TCP uploading flows at server side. Second, as the flows belonging to each phase are collected separately, we could not match each \emph{voice recognition}-\emph{web search} pair. Thus we are not capable of quantitatively understanding how each phase impacts the user-perceived performance in voice search, and how each network factor impact different in the two phases. Third, from our dataset, we find that RTT in WiFi network is about 2-3 times larger than that in 3G network, which is contradictory to previous studies like \cite{sommers2012cell}. This difference might be induced by the unique network characteristics in the region network where we collected the dataset. However, we could verify our findings through more data collection from multiple region networks.
+
+We believe that we could obtain more findings if the limitation of dataset are solved, which are left as future work.

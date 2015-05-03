@@ -120,7 +120,7 @@ To understand how each packet loss impact finish time, we distinguish timeout re
 
 The different amount of timeout retransmission in the two networks under the same number of lost packets motivates us to investigate how timeout retransmission is triggered. Essentially, there are two scenarios in which sender has to appeal timeout retransmission for loss recovery. The first scenario is when a transmitted packet is dropped by network, sender has to wait for RTO for recovery (noted as \emph{double retransmission}). 
 
-The second scenario is that sender could not receive sufficient number of duplicate acknowledgments (dupacks), which is the prerequisite of fast retransmit. The insufficiency of dupacks could be induced by various reasons. When packet loss happens in the last 3 packets of a flow, sender could not receives 3 dupacks. Timeout retransmission is triggered due to insufficient number of data packets, which is named \emph{tail retransmission}~\cite{flach2013reducing}. When the congestion window is small (\eg 1 segment size after timeout retransmission), packet loss has to be recovered by timeout transmission, which is named \emph{small congestion window retransmission}. Even if there are sufficient data packets for transmission, and congestion window size is large enough, packet loss may also be recovered by timeout retransmission. Considering the data packets $s_1, s_2, \cdots, s_n$ ($n > 3$), in which $s_1$ is dropped, the acknowledgments for $s_2, \cdots, s_n$ reach the sender with a long latency, after timeout transmission occurs. This could be induced by severe network latency jitters, or by misbehaving middle-boxes blocking the dupacks~\cite{honda2011isit}, which is named \emph{packet delay retransmission}.
+The second scenario is that sender could not receive sufficient number of duplicate acknowledgments (dupacks), which is the prerequisite of fast retransmit. The insufficiency of dupacks could be induced by various reasons. When packet loss happens in the last 3 packets of a flow, sender could not receives 3 dupacks. Timeout retransmission is triggered due to insufficient number of data packets, which is named \emph{tail retransmission}~\cite{flach2013reducing}. When the congestion window is small (\eg 1 segment size after timeout retransmission), packet loss has to be recovered by timeout transmission, which is named \emph{small congestion window retransmission}. Even if there are sufficient data packets for transmission, and congestion window size is large enough, packet loss may also be recovered by timeout retransmission. Considering the data packets $s_1, s_2, \cdots, s_n$ ($n > 3$), in which $s_1$ is dropped, the acknowledgments for $s_2, \cdots, s_n$ reach the sender with a long latency, after timeout transmission occurs. This could be induced by severe network latency jitters, or by misbehaving middleboxes blocking the dupacks~\cite{honda2011isit}, which is named \emph{packet delay retransmission}.
 
 We propose a simple strategy to determine how each RTO is triggered in Algorithm~\ref{alg:rto}. In the algorithm, there are other timeout retransmissions which could not be classified as one of the reasons above, such as when all packets in the windows are dropped. 
 
@@ -135,7 +135,8 @@ We propose a simple strategy to determine how each RTO is triggered in Algorithm
 				\State \textbf{return} $tail\_retransmission$
 			\ElsIf {\#(in-flight packets) = 1}
 				\State \textbf{return} $small\_cwnd\_retransmission$
-			\ElsIf {only 1 in-flight packet is dropped}
+			\ElsIf {only 1 in-flight packet is dropped \textbf{and}
+				\Statex \indent\indent\indent\indent no dupack is received}
 				\State \textbf{return} $packet\_delay\_retransmission$
 			\Else
 				\State \textbf{return} $others$
@@ -164,7 +165,7 @@ We propose a simple strategy to determine how each RTO is triggered in Algorithm
 \end{tabular}
 \end{table}
 
-According to the algorithm, we determine how many timeout retransmissions belong to each type. Table~\ref{tab:rto_type} shows the fraction of each type. From the table, tail retransmission occupies the largest fraction in both networks, which illustrates the severity of tail packet loss in short flows~\cite{flach2013reducing}. Moreover, compared with those in 3G networks, flows in WiFi network suffer more from double retransmission (33.8\%) as well as packet delay retransmission (27.4\%). The former occurs in flows with two or more lost packets, while the latter could occur even when there is only one packet loss. This explains why there are so many timeout retransmissions in flows in WiFi network. As the three major kinds of timeout retransmission are induced by various reasons: flow property (tail retransmission), TCP mechanism (double retransmission), and misbehaving middle-boxes (packet latency retransmission), to eliminate timeout retransmission may require a combination of efforts from many sides, like improving TCP protocol, application-level optimization, as well as misbehavior troubleshooting in middle-boxes.
+According to the algorithm, we determine how many timeout retransmissions belong to each type. Table~\ref{tab:rto_type} shows the fraction of each type. From the table, tail retransmission occupies the largest fraction in both networks, which illustrates the severity of tail packet loss in short flows~\cite{flach2013reducing}. Moreover, compared with those in 3G networks, flows in WiFi network suffer more from double retransmission (33.8\%) as well as packet delay retransmission (27.4\%). The former occurs in flows with two or more lost packets, while the latter could occur even when there is only one packet loss. This explains why there are so many timeout retransmissions in flows in WiFi network. As the three major kinds of timeout retransmission are induced by various reasons: flow property (tail retransmission), TCP mechanism (double retransmission), and misbehaving middleboxes (packet latency retransmission), to eliminate timeout retransmission may require a combination of efforts from many sides, like improving TCP protocol, application-level optimization, as well as misbehavior troubleshooting in middleboxes.
 
 \subsection{Summary of web search analysis}
 
@@ -172,7 +173,7 @@ The key observations on web search flows are summarized below.
 
 \begin{itemize}
 	\item Compared to the impact of RTT on voice recognition flow, RTT has limited affect on the transmission time per packet in web search.
-	\item More than 50\% of flows spend 30\% of their total time on establishing connections.
+	\item More than 50\% of flows spend at least 30\% of their total time on establishing connections.
 	\item Flows in WiFi network spend tens of times more than estimated time in congestion avoidance due to timeout retransmission.
 	\item Most of timeout retransmissions in both networks are induced by packet loss at flow tail. However, about 33.8\% of timeout retransmissions in WiFi are induced by loss of retransmitted packet.
 \end{itemize}
