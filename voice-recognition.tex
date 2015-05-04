@@ -1,15 +1,23 @@
 %!TEX root = main.tex
 
 \section{Analysis of Voice Recognition}
+\label{sec:voice}
 
-\begin{figure}[th]
+\begin{table*}[th]
+\caption{Statistics of voice recognition flows.}
+\label{tab:voice_stats}
 \centering
-	\includegraphics[scale=0.7]{voice_estimate_rtt}
-\caption{Time-line in voice recognition flow.}
-\label{fig:voice_estimate_rtt}
-\end{figure}
-
-Voice recognition consists of mobile terminals uploading the voice data and server returning back the recognized query text. Figure~\ref{fig:voice_estimate_rtt} shows the typical time-line of a voice recognition flow. The following web search is initialized by mobile clients once they receive the recognized text at $t^c_a$. That said, the finish time of a recognition flow measures the duration from $t^c_s$ to $t^c_a$. But we do not have these two timestamps at server side where we collected our datasets. Note that the timestamp option in TCP is  disabled since otherwise, clients behind NATs (Network Address Translations) might not be able to build connections with the servers that with PAWS (Protect Against Wrapped Sequence number) \cite{rfc7323} enabled \cite{Wang:2011:USM:2018436.2018479}. Alternatively, we approximate the finish time with $T_s=t^s_t - t^s_s$. This finish time however includes the time consumed by servers automatically translating speech to text ($T_r=t^s_r - t^s_v$), which is not relevant to network performance\footnote{The time duration needed for translating voice to text is dependent on the used speech recognition technologies. We refer readers to \cite{36463,schalkwyk2010your} for more details of speech recognition.} and out of our interests in this paper. We thus redefine the finish time as $T_s-T_r$.
+\renewcommand{\arraystretch}{1.0}
+\begin{tabular}{c|c|c|c|C{2.1cm}|C{2.1cm}}
+	\hline
+	& finish time (sec) & flow size (\#pkts) & RTT (sec) & \% of flows w/ disord. pkts & \% of flows w/ timeout retrx \\
+	\hline
+	WiFi & 0.069 (0.015 1.052) & 3.0 (2.0 4.0) & 0.045 (0.012 0.399) & 3.3\% & 9.5\% \\
+	\hline
+	3G & 0.055 (0.006 0.316) & 3.0 (2.0 4.0) & 0.035 (0.005 0.099) & 6.6\% & 7.3\% \\
+	\hline
+\end{tabular}
+\end{table*}
 
 \begin{figure}[th]
 	\centering
@@ -19,7 +27,6 @@ Voice recognition consists of mobile terminals uploading the voice data and serv
 \end{figure}
 
 We can observe from Figure~\ref{fig:voice_estimate_rtt} that the finish time can be approximated by $2\times RTT$ plus the time duration for the the voice data uploading if no packet loss happens. We measure the number of voice data packets in Figure~\ref{fig:voice_flow_size} for 3G and WiFi flows, where $y$-axis is in log scale. Independent of the access type, 80\% of voice recognition flows contains no more 3 voice data packets and nearly all flows contain no more than 7 data packets. Given that the initial congestion window in current Android TCP/IP stack is set to 10 segments\cite{dukkipati2010argument}, the voice data could be transmitted in the initial congestion window. However, since any packets (including SYN) might be delayed, disordered or dropped by network, the finish time might vary greatly. In what follows, we will look at each TCP performance factor and its impact on flow finish time. 
-
 
 \subsection{Impact of RTT}
 
@@ -112,7 +119,7 @@ We can see from Figure \ref{fig:voice_reorder} that one disordered packet in 3G 
 
 The significance of the impact of packet disordering on finish time is also dependent on RTT, because both the waiting time for fast retransmit and timeout retransmission timer (i.e. RTO) depend on the RTT. To further assess the objective impact of packet reordering by excluding the possible effect of other covariates (like RTT), we implement a non-parametric factorial analysis framework using a Quasi Experimental Design (QED) \cite{krishnan2013video}. In QED, each uniformly sampled individual $u$ is compared with an individual $v$ randomly selected from those that have identical covariates with $u$ but the cause variable (packet disordering in our context). And thus, any outcome difference between these two individuals can be attributed to the cause variable we are tracking. 
 
-In detail, we bin the voice recognition flows of each access type into two groups: those with no disordered packet ($G_1$) and those with 1 disordered packet ($G_2$). For each flow $u \in G_1$, we randomly choose a flow $v$ from $G_2$ that has similar RTT (i.e. the difference is less than 40 ms) and and the same condition whether encountering a timeout retransmission that is identified by the methodology in Section \ref{sec:v_rto}. We record the outcome difference as $o_{u,v} = (ftime_{v} - ftime_{u}) / ftime_{u})$, where $ftime_v$ is the finisht time of the flow $v$. Finally, we average all the outcome differences over the matched pairs and use this average difference to gauge the impact of packet disordering.
+In detail, we bin the voice recognition flows of each access type into two groups: those with no disordered packet ($G_1$) and those with 1 disordered packet ($G_2$). For each flow $u \in G_1$, we randomly choose a flow $v$ from $G_2$ that has similar RTT (i.e. the difference is less than 40 ms) and and the same condition whether encountering a timeout retransmission that is identified by the methodology in Section \ref{sec:v_rto}. We record the outcome difference as $o_{u,v} = \frac{ftime_{v} - ftime_{u}}{ftime_{u}}$, where $ftime_v$ is the finisht time of the flow $v$. Finally, we average all the outcome differences over the matched pairs and use this average difference to gauge the impact of packet disordering.
 
 \begin{table}[th]
 \caption{QED results for the impact of packet disordering.}
@@ -152,7 +159,7 @@ Figure \ref{fig:rto_rtt} plots the distribution of RTO/RTT. We can observe the R
 \centering
 \renewcommand{\arraystretch}{1.1}
 \caption{Flows with timeout retransmission.}
-\label{tab:voice_stats}
+\label{tab:voice_timeout_stats}
 \begin{tabular}{c | C{2cm} | C{2cm}}
 	\hline
 	 & WiFi & 3G \\
@@ -168,7 +175,7 @@ Figure \ref{fig:rto_rtt} plots the distribution of RTO/RTT. We can observe the R
 \end{tabular}
 \end{table}
 
-Table~\ref{tab:voice_stats} lists the percentage of flows that suffer from at least one timeout retransmission in our dataset. The timeout retransmission could happen either during 3-way handshake (3WHS) or in data transmission. While the timeout retransmission during 3WHS is less likely to happen compared with timeout retransmission during data uploading, its impact might be even larger. This is because the initial RTO is set to 1 second \cite{rfc62982011computing} as there is no RTT available at that time. This RTO value is often much larger than that computed during data uploading. Users might quit the app during this the time period for recovery. 
+Table~\ref{tab:voice_timeout_stats} lists the percentage of flows that suffer from at least one timeout retransmission in our dataset. The timeout retransmission could happen either during 3-way handshake (3WHS) or in data transmission. While the timeout retransmission during 3WHS is less likely to happen compared with timeout retransmission during data uploading, its impact might be even larger. This is because the initial RTO is set to 1 second \cite{rfc62982011computing} as there is no RTT available at that time. This RTO value is often much larger than that computed during data uploading. Users might quit the app during this the time period for recovery. 
 
 Regardless of the access type, we observe as many as over 7\% of the voice data uploading flows suffer from at least one timeout retransmission. Such a large fraction of timeout retransmission flows can be explained by the fact that almost all the voice recognition flows contain no more than 6 voice data packets. When one of the last three packets is dropped, the sender (i.e. client) has to rely on RTO for retransmission. This behavior is similar to the tail lost one identified in \cite{flach2013reducing}. But in the voice data uploading context, the server is no longer a sender and thus unable to eliminate such kind of RTO retransmissions by gently send redundant packets as proposed in \cite{flach2013reducing}. Our results highlight the necessary of TCP optimization for uploading at server side. 
 
