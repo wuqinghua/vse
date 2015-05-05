@@ -16,9 +16,9 @@
 
 % shortcut
 \newcommand{\etc}{{etc.}\@\xspace}
-\newcommand{\ie}{{i.e.}\@\xspace}
+\newcommand{\ie}{{i.e.,}\@\xspace}
 \newcommand{\etal}{{et al.}\@\xspace}
-\newcommand{\eg}{{e.g.}\@\xspace}
+\newcommand{\eg}{{e.g.,}\@\xspace}
 \newcommand{\aka}{{aka}\@\xspace}
 \newcommand{\comment}[1] {\textbf{\color{red}{Comment: #1}}}
 \renewcommand{\algorithmicforall}{\textbf{for each}}
@@ -58,7 +58,6 @@
 \maketitle
 
 \begin{abstract}
-Voice search service is becoming gradually more popular due to its convenience on mobile devices in the past years. A voice search session consists of two successive phases: voice recognition and web search. We collect a unique dataset from voice search servers, and bread the analysis into two segments. In voice recognition phase, we investigate the impact of RTT, packet reordering, and timeout retransmission on finish time. In web search phase, we partition the web search phase into three stages, examine the impact of the three stages on finish time, and inspect the key parameter in each stage. We obtain the following observations based on the analysis above. When there is no packet loss, RTT is the key parameter of finish time. When there is packet loss, compared with 3G flows, WiFi flows are more likely to suffer from timeout retransmission, which will dominate the finish time. After classification of these timeout retransmissions, we find that tail retransmission occupies the largest fraction in both WiFi flows (38.3\%) and 3G flows (69.6\%). However, WiFi flows also suffer from double retransmission (33.8\%) and packet delay retransmission (27.4\%). We believe these findings provide valuable insight on improving the performance of voice search service.
 \end{abstract}
 
 \input{introduction}
