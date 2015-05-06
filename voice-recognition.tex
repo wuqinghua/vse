@@ -185,7 +185,6 @@ We finally compare the finish time between flows with and without timeout retran
 
 The key observations on voice recognition flows are summarized as follows:
 \begin{itemize}
-\begin{itemize}
 \item Most of voice recognition flows contain no more than 4 data packets, which fit into the initial congestion window of the client. Ideally, the voice data can be transmitted in 1 RTT.
 \item For flows with smaller RTT (say no more than 200 ms), the finish time is proportional to RTT. WiFi flows tend to have larger finish time compared to those in 3G, due to larger RTT. 	
 \item Disordered packets, caused by either packet delay or packet loss, increasing the finish time by 4-6 times. Although WiFi flows are less likely to see disordered packets than 3G flows, they suffer more from packet disordering due to longer time for recovery.
