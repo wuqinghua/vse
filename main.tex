@@ -1,5 +1,12 @@
 \documentclass{sig-alternate}
 
+\setlength{\paperheight}{11in}
+\setlength{\paperwidth}{8.5in}
+\usepackage[
+  pass,% keep layout unchanged 
+  % showframe,% show the layout
+]{geometry}
+
 \usepackage{url}
 %\usepackage[caption=false]{subfig}
 \usepackage{subcaption}
@@ -52,13 +59,15 @@
 	$^\star$University of Chinese Academy of Sciences, China\\
 	$^\ddag$Queen Mary, University of London\\
 	$^\sharp$Carnegie Mellon University}\\
-    \email{\vspace{0.5em} \{wuqinghua, zyli, dengqian, zhoujianer, xie\}@ict.ac.cn, steve@eecs.qmul.ac.uk, prs@cs.cmu.edu}
+    \email{\vspace{0.5em} \{wuqinghua, zyli, dengqian, zhoujianer, xie\}@ict.ac.cn, steve.uhlig@qmul.ac.uk, prs@cs.cmu.edu}
 }
 
 \maketitle
 
 \begin{abstract}
-Voice search service is becoming gradually more popular due to its convenience on mobile devices in the past years. A voice search session consists of two successive phases: voice recognition and web search. We collect a unique dataset from voice search servers, and bread the analysis into two segments. In voice recognition phase, we investigate the impact of RTT, packet reordering, and timeout retransmission on finish time. In web search phase, we partition the web search phase into three stages, examine the impact of the three stages on finish time, and inspect the key parameter in each stage. We obtain the following observations based on the analysis above. Despite the small flow size, there are outlier flows experiencing extremely long finish time. When there is no packet loss, RTT is the key parameter of finish time. When there is packet loss, compared with 3G flows, WiFi flows are more likely to suffer from timeout retransmission, which will dominate the finish time. After classification of these timeout retransmissions, we find that tail retransmission occupies the largest fraction in both WiFi flows (38.3\%) and 3G flows (69.6\%). However, WiFi flows also suffer from double retransmission (33.8\%) and packet delay retransmission (27.4\%). We believe these findings provide valuable insight on improving the performance of voice search service.
+Voice search on mobile devices is becoming gradually more popular due to its incredible convenience. A voice search session consists of two successive and separate phases: voice recognition and web search. The first phase translates the voice into a text query. The second phase then performs a standard web query and returns the result to the user. We collect a unique dataset made of packet-level traces from voice search servers from one of the largest search service providers in China. We study the TCP-level performance of this traffic by analysing separately the two phases of the voice search service, and comparing the differences between cellular and WiFi access technologies. For the voice recognition phase, we investigate the impact of RTT, packet reordering, and timeout retransmission on the flow completion time. For web search, we split the analysis into the three TCP-related phases (3-way handshake, slow start and congestion control). For each TCP phase, we extract the key parameters and their impact on the flow completion time.
+
+We make the following observations in this paper. Despite the small flow sizes of this service, a non-negligible fraction of the flows experience extremely large time to completion. In the absence of packet loss, the RTT is the key parameter affecting completion time. When there is packet loss, compared with 3G flows, WiFi flows are more likely to suffer from timeout retransmission, which will then dominate the completion time. After classification of these timeout retransmissions, we find that tail retransmission occupies the largest fraction in both WiFi flows (38.3\%) and 3G flows (69.6\%). However, WiFi flows also suffer from double retransmission (33.8\%) and packet delay retransmission (27.4\%). Our findings provide new insights not only on this new voice search traffic, but also the intricacies of TCP for short flows (both upload and download).
 \end{abstract}
 
 \input{introduction}
