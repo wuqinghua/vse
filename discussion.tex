@@ -3,18 +3,18 @@
 \section{Summary and Discussion}
 \label{sec:discuss}
 
-In this section, we first summarise the findings from our analysis of voice recognition (Section~\ref{sec:web_search}) and web search (Section~\ref{sec:web_search}), and follow up with a discussion of their implications for the state-of-the-art and future work.
+In this section, we first summarise the findings from our analysis of voice recognition (Section~\ref{sec:voice}) and web search (Section~\ref{sec:web_search}), and follow up with a discussion of their implications for the state-of-the-art and future work.
 
 Let us first summarize our main findings:
 
 \begin{itemize}
 	\item Flows in both voice recognition and web search are short. Ideally, voice recognition flows will complete in 2 RTTs (one for 3WHS, one for voice data upload), and web search flows will complete in no more than 5 RTTs (one for 3WHS, 4 for web search results). However, we see that more than 10\% of voice recognition flows take 0.5 second to complete, and 20\% of web search flows complete in 1 second.
 
-	\item Compared to flows in 3G, WiFi flows experience longer completion time, both for voice recognition and web search. This result unexpected in light of previous work~\cite{deshpande2010performance,sommers2012cell}. The issues with WiFi flows are induced by both higher packet loss rate (3\% in WiFi versus 0.9\% in 3G) and larger RTTs.
+	\item Compared to flows in 3G, WiFi flows experience longer completion time, both for voice recognition and web search. This result is unexpected in light of previous work~\cite{deshpande2010performance,sommers2012cell}. The issues with WiFi flows are induced by both higher packet loss rate (3\% in WiFi versus 0.9\% in 3G) and larger RTTs.
 
 	\item WiFi flows suffer from less packet reordering in voice recognition, and more packet loss in web search than 3G flows. However, due to larger RTTs, senders in WiFi need more time to recover from these events.
 
-	\item In both voice recognition and web search, if there is no packet loss, the RTT is the key parameter for the flow completion time. When there is packet loss, WiFi flows are more likely to suffer from timeout retransmission. In this situation, timeout retransmission will dominate the flow completion time. Voice recognition flows suffer more timeout retransmissions than web search flows (9.5\% in voice recognition versus 4.1\% in web search). As most of voice recognition flows contain no more than 4 packets, even one lost packet may trigger tail retransmission. 
+	\item In both voice recognition and web search, if there is no packet loss, the RTT is the key parameter for the flow completion time. When there is packet loss, WiFi flows are more likely to suffer from timeout retransmission. In this situation, timeout retransmission will dominate the flow completion time. Voice recognition flows suffer more timeout retransmissions than web search flows (6.7\% in voice recognition versus 4.1\% in web search). As most of voice recognition flows contain no more than 4 packets, even one lost packet may trigger tail retransmission. 
 
 	\item Timeout retransmission can happen anywhere between the SYN and the last few data packets. In fact, tail retransmission contributes most of the timeout retransmissions in web search, especially for 3G flows. Double retransmission and packet delay retransmission on the other hand play a more important role for WiFi flows.
 \end{itemize}
