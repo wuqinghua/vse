@@ -135,7 +135,7 @@ We first examine how much extra time the congestion avoidance phase introduces f
 Figure~\ref{fig:web_ca_round} reports the distribution of this ratio. We observe a surprisingly high ratio for WiFi flows. The median ratio is as high as 3.2 and 20\% of the WiFi flows have a ratio higher than 11, meaning that 10 times more time is necessary to complete the flow for these 20\% of flows. 3G flows on the other hand have a ratio no larger than 2, for 95\% of the flows. The difference between 3G and WiFi flows in the packet loss rate (3\% in WiFi versus 0.9\% in 3G) and the difference in the impact of packet loss largely contribute to the observed difference between WiFi and 3G flows.
 
 \begin{table}[th]
-\caption{Finish time (in ms, represented as $mean$ ($5^th$ percentile, $95^th$ percentile)) under different numbers of lost packets.}
+\caption{Finish time (in ms, represented as $mean$ ($5^{th}$ percentile, $95^{th}$ percentile)) under different numbers of lost packets.}
 \label{tab:web_loss_finish_time}
 \centering
 \renewcommand{\arraystretch}{1.0}
@@ -224,9 +224,15 @@ The results in Table~\ref{tab:rto_type} explain why timeout retransmissions are 
 
 The key observations on web search flows are summarized below:
 
+
+
 \begin{itemize}
-	\item More than 50\% of flows spend at least 30\% of their total time in connection establishment. Moreover, 4.4\% of WiFi flows have to retransmit the SYN packet, making the time for establishing connections longer than 1 second.
-	\item In 90\% of the flows, the RTT plays an important role in the finish time, thanks to no packet loss. However, in the flows with packet loss, the time spent on loss recovery dominates the finish time.
-	\item When there are packet losses, the time taken for loss recovery makes the finish time at least 2-3 times larger. Compared with 3G flows, WiFi flows are more sensitive to packet loss. Under the same number of lost packets, WiFi flows experience much longer finish time than 3G flows.
-	\item Most timeout retransmissions in 3G network are induced by packet losses in the flow tail. However, tail retransmission, double retransmission and packet delay retransmission occupy 38.3\%, 33.8\% and 27.4\% of timeout retransmissions in WiFi flows respectively. This is induced by both higher packet loss rate and misbehaving middleboxes.
+\item More than 50\% of flows spend at least 30\% of their total time in connection establishment. Moreover, 4.4\% of WiFi flows have to retransmit the SYN packet, making the time for establishing connections longer than 1 second.
+	
+\item Independent of access type, 90\% of the flows experience no packet loss and thus finish in the slow start stage. For these flows,  RTT plays an important role in the finish time. %However, in the flows with packet loss, the time spent on loss recovery dominates the finish time.
+	
+\item For those flows with packet loss, the time taken for loss recovery makes the finish time at least 2-3 times larger. Compared with 3G flows, WiFi flows are more sensitive to packet loss, partially because WiFi flows are more likely to use timeout retransmission for packet recovery. 
+	
+\item Most timeout retransmissions in 3G network are induced by packet losses in the flow tail. However, tail retransmission, double retransmission and packet delay retransmission contribute very close (38.3\%, 33.8\% and 27.4\% respectively) in WiFi flows. 
+	
 \end{itemize}
