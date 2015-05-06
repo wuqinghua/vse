@@ -5,15 +5,6 @@
 
 In this section, we examine the TCP performance of web search flows. We start by providing high-level statistics on key performance indicators in Table~\ref{tab:web_stats}. For flow completion time, flow size and RTT, we report the median along with the $5th$ and $95th$ percentile values in parenthesis. Flow size measures the number of web search result packets as show in Figure~\ref{fig:web_finish_time_example}. We observe that 3G flows are larger than WiFi's, which can be explained by the difference in search behavior across these access technologies \cite{Song:2013:EEU:2488388.2488493}. Most of the flows contain no more than 100 packets, hence still relatively short, implying that any TCP performance degradation (\eg high packet loss) could exert a large influence on user perceived latency (\ie flow completion time)~\cite{flach2013reducing}. Flow size does not affect performance though, with little correlation between these two variables (the Kendall correlation coefficient is 0.018. Overall, 3G flows exhibit smaller RTT, lower packet loss rate and also are less likely to suffer from the expensive timeout retransmissions.
 
-%\begin{figure}[th]
-%\centering
-%	\includegraphics[width=0.8\linewidth]{web_flow_size}
-%\caption{The distribution of flow sizes in web search.}
-%\label{fig:web_flow_size}
-%\end{figure}
-%
-%Figure~\ref{fig:web_flow_size} plots the distribution of flow size (measured by the number of web search result packets) in web search. The flow size varies from 1 packet to 100 packets with a median around 10 packets. Such a small flow size implies that any TCP performance degradation (like a high packet loss) could exert a large impact on the user perceived latency (i.e. flow completion time) \cite{flach2013reducing}. We also observe a smaller flow size of WiFi search than that of 3G search, which might be due to the difference in search behavior \cite{Song:2013:EEU:2488388.2488493}. We use Kendall correlation to determine whether flow size is relevant to flow completion time. The coefficient is 0.018, which demonstrates their irrelevance.
-
 As a TCP sender in web search, the server is able to measure multiple TCP performance factors and behavior, enabling us to perform a detailed analysis of the TCP performance and its impact on the flow completion time. In the sequel, we analyze the TCP performance across the 3 main TCP phases, and in particular detail delve into timeout retransmissions.
 
 \subsection{TCP Phase Analysis}
@@ -23,6 +14,7 @@ As a TCP sender in web search, the server is able to measure multiple TCP perfor
 \includegraphics[width=0.8\linewidth]{web_three_stages}
 \caption{The three phases in web search flows.}
 \label{fig:web_three_stages}
+\minsqueeze
 \end{figure}
 
 A TCP flow comprises 3 phases: \emph{3-way handshake}, \emph{slow start}, and \emph{congestion avoidance}, which is illustrated in Figure~\ref{fig:web_three_stages} using a web search flow from our dataset, where the $y$-axis shows the TCP sequence number. The TCP 3-way handshake (3WHS) phase ideally completes within 1 RTT (\ie without packet loss, delay and reordering). The server then enters the slow start phase, during which the server does not encounter any packet loss or reordering event, and thus increases the congestion window by 1 segment for each received ACK. The server enters congestion avoidance phase once it detects a packet loss\footnote{The packet can actually be delayed or lost.}. In this phase, the server decreases the congestion window when detecting packet loss through fast retransmit~\cite{rfc6675} and sets the congestion window to 1 segment when detecting packet loss through RTO. Note that the congestion avoidance phase here starts when the server detects congestion and ends when the flow terminates, which is slightly different from the TCP congestion avoidance phase in~\cite{jacobson1988congestion}.
@@ -36,6 +28,7 @@ A TCP flow comprises 3 phases: \emph{3-way handshake}, \emph{slow start}, and \e
 \includegraphics[width=0.8\linewidth]{web_handshake_time_ratio}
 \caption{The ratio of time in 3-way handshake to completion time in each flow.}
 \label{fig:web_handshake_ratio}
+\minsqueeze
 \end{figure}
 
 We first examine how much of the time flows spend in the 3WSH phase (Figure~\ref{fig:web_handshake_ratio}). Figure~\ref{fig:web_handshake_ratio} shows the CDF of the ratio between the time in 3WSH and the flow completion time, using a log scale for the $x$-axis. 3G and WiFi flows spend a comparable ratio of their time in this phase. We observe that the time spent during connection establishment can take as much as half of the flow completion time for 30\% flows. About 8\% of the WiFi flows and 3\% of 3G flows spend as much as 70\% of their time during this phase. The small flow size is one of the reasons for this. Indeed, the maximum flow size is 100 packets, as shown in Table~\ref{tab:web_stats}, implying that the data has very few RTTs to be transmitted, if no congestion event happens. Obviously, such a short period of transmission time leads to a relatively large portion of time for connection establishment.
@@ -55,6 +48,7 @@ Another important reason that explains the unexpectedly long time spent in the 3
 \includegraphics[width=0.8\linewidth]{web_slowstart_time_ratio}
 \caption{Ratio of time spent in slow start to the time in data transmission (slow start and congestion avoidance).}
 \label{fig:web_ss_time_ratio}
+\minsqueeze
 \end{figure}
 
 The slow start and the congestion avoidance phases constitute the data transmission period of a flow. Figure~\ref{fig:web_ss_time_ratio} shows the ratio of time in slow start phase to the time spent in data transmission (\ie the sum of time in slow start and congestion avoidance). Note that the $y$-axis is capped at 0.1. We observe that 1.5\% of the WiFi flows are unable to transmit any data in the slow start phase, because their first packet is dropped.
@@ -64,22 +58,18 @@ The slow start and the congestion avoidance phases constitute the data transmiss
 \label{tab:web_finish_time_3rd_phase}
 \centering
 \renewcommand{\arraystretch}{1.0}
-
 \begin{tabular}{l|c|c|c}
 \hline
 & 5 \%ile & median & 95 \%ile \\
 \hline
 WiFi finished & 30 & 170 & 2,810 \\
 WiFi unfinished & 80 & 770 & 21,240 \\
-%\hline
-
 \hline
 3G finished & 10 & 120 & 810 \\
 3G unfinished & 10 & 160 & 2,420 \\
-%\hline
-
 \hline
 \end{tabular}
+\minsqueeze
 \end{table}
 
 More importantly, regardless of the access technology, more than 90\% of the flows finish during the slow start phase. In other words, about 10\% of the flows have to experience the congestion avoidance phase. Intuitively, the more time spent in the slow start phase, the shorter the time to complete the data transmission. To verify this, we compare in Table~\ref{tab:web_finish_time_3rd_phase} the flow completion time of the flows that finish in the slow start phase and those who do not. Overall, increasing the likelihood of finishing web search results transfer during slow start can greatly improve the user perceived latency. For example, the median flow completion time would be improved by 4 times if a flow finishes in the slow start phase instead of entering the congestion avoidance phase. The 95\textsuperscript{th} percentile flow completion time can be improved by one order of magnitude. We also observe that WiFi flows are more impacted if they do not finish during slow start.
@@ -89,15 +79,15 @@ More importantly, regardless of the access technology, more than 90\% of the flo
 \label{tab:web_rtt_finish_time_correlation}
 \centering
 \renewcommand{\arraystretch}{1.0}
-\begin{tabular}{c|C{2.5cm}|C{2.5cm}}
+\begin{tabular}{c|C{2.6cm}|C{2.5cm}}
    \hline
    & w/o cong. avoid. & w/ cong. avoid. \\
    \hline
    WiFi & 0.55 & 0.13 \\
- %  \hline
    3G & 0.59 & 0.52 \\
    \hline
 \end{tabular}
+\minsqueeze
 \end{table}
 
 During the slow start phase, the congestion window is doubled after each RTT. Suppose there is no packet loss, for a flow containing $k$ data packets, sender requires $\lceil{\log_2 (k/10+1)}\rceil$ RTTs to transmit all the packets. As most of web search flows have no more than 100 packets, it will take them at most 4 RTTs for data transmission, when there are no packet loss. Therefore, the RTT is expected to have a high impact on the flow completion time. To confirm this, we examine in Table~\ref{tab:web_rtt_finish_time_correlation} the Kendall correlation between RTT and flow completion time, for flows that finish in the slow start phase (\ie without entering congestion avoidance). For comparison, we also report the correlation for flows that experience congestion avoidance. We observe, regardless of the access technology, a mild correlation for flows that finish in the slow start phase, confirming the expected impact of RTT on the flow completion time for these flows. The correlation for flows that experience congestion avoidance however is dependent on the access technology, which can be explained by the fact that other factors, such as packet loss, can have a significant impact during the congestion avoidance phase. As we have seen in Table~\ref{tab:web_stats}, WiFi flows experience a higher packet loss rate and thus are more likely to be impacted by packet loss than RTT. In addition, as we will see in the following analysis, WiFi flows that experience the congestion avoidance are more likely to recover from packet losses through expensive timeout retransmission.
@@ -110,6 +100,7 @@ During the slow start phase, the congestion window is doubled after each RTT. Su
 \includegraphics[width=0.8\linewidth]{web_ca_prac_over_est}
 \caption{CDF of the extra time introduced by the congestion avoidance phase.}
 \label{fig:web_ca_round}
+\minsqueeze
 \end{figure}
 
 We first examine how much extra time the congestion avoidance phase introduces for individual flows. Let $\#(ca\_pkts)$ be the number of packets transmitted in this phase for a flow. As a TCP sender, the server sends $cwnd$ packets in one RTT, where $cwnd$ is the size of the congestion window at the time of entering the congestion avoidance phase. Thus, if the flow had not experienced the congestion avoidance phase, the server would have sent $\#(ca\_pkts)$ packets over a time duration of $T_e =  \left \lceil{\frac{\#(ca\_pkts)}{cwnd}} \right \rceil  \times RTT$. Now, we observe that the flow actually spent $T_r$ of time for transmitting these packets. Then we compute the ratio of  $T_r$ to $T_e$ and use this ratio to quantify the extra time introduced by this phase. Unfortunately, we do not see $cwnd$ from the traces, and instead use the number of in-flight packets at the time of entering the phase to approximate this value~\cite{rfc56812009tcp}. 
@@ -134,6 +125,7 @@ Figure~\ref{fig:web_ca_round} reports the distribution of this ratio. We observe
 $\ge$3 & 2,820 (140, 34,890) & 270 (50, 930) \\
 \hline
 \end{tabular}
+\minsqueeze
 \end{table}
 
 We then examine the impact of packet loss on flow completion time in Table~\ref{tab:web_loss_finish_time}. Flows are grouped based on how many packets were lost in individual flows. The median flow completion time, along with the $5th$ and $95th$ percentiles are reported for each group. For comparison, we also report the statistics for flows without any packet loss, \ie these flows finish the data transmission in the slow start phase. For 3G flows, a packet loss nearly doubles the flow completion time compared to the flows with no packet loss. A higher number of packet losses does not increase the flow completion time significantly in 3G. The situation for WiFi is different, with every additional packet loss leading to an even more pronounced increase in the flow completion time: the median flow completion time increases from 180 ms for flows with no packet loss to 480 ms for flows with 1 lost packets, and grows up to 2.8 second for flows with more than 3 lost packets. 
@@ -147,6 +139,7 @@ The huge difference in the impact of packet loss on flow completion time for WiF
 \includegraphics[width=\linewidth]{web_loss_rto_ratio}
 \caption{Fraction of flows with timeout retransmission under different number of lost packets.}
 \label{fig:web_loss_rto_ratio}
+\minsqueeze
 \end{figure}
 
 %For each data packet which is not retransmitted, the measured RTT is the duration from that server transmits the packet, to that server receives the acknowledgment for it. In web search progress, we record as many RTT's as possible. When each new RTT is measured, the RTO value is updated by $RTO = SRTT + max(200ms, 4 RTTVAR)$, where $SRTT$ and $RTTVAR$ mean smoothed RTT and RTT variation respectively. For a retransmitted packet, if the duration between its retransmission time and the time that last packet is transmitted is larger than the calculated RTO, we could infer that it is a timeout retransmission. For each retransmitted packet, if server would not receive D-SACK, such a retransmission recovers a real packet loss, otherwise, the packet is not dropped and the retransmission is spurious. Note that a data segment could be retransmitted twice or more if the previously retransmitted packet is regarded as lost.
@@ -196,6 +189,7 @@ We use the methodology shown in Algorithm~\ref{alg:rto} to determine the type of
 	others & 0.2\% & 0.2\%\\
 	\hline
 \end{tabular}
+\minsqueeze
 \end{table}
 
 Tail retransmission contributes the majority (\ie 70\%) of timeout retransmissions for 3G flows. Indeed, if the packet loss happens in the tail of a flow, it has to be recovered through timeout retransmission. Given the small size of web search flows, a tail packet loss can lead to a notable increase of the flow completion time~\cite{flach2013reducing}. However, in WiFi flows, only 38\% of the timeout retransmissions are classified as tail retransmissions, because double retransmission and packet delay retransmission is much more likely than in 3G flows. The higher probability of double retransmission in WiFi flows might come from the higher packet loss rate, in which case the retransmitted packet itself is dropped. On the other hand, the higher probability of packet delay retransmission implies a possibility that in WiFi network that we examined, middleboxes might buffer the disordered packets. We leave the examination of the impact of middleboxes as future work.

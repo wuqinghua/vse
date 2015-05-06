@@ -12,6 +12,7 @@ We begin this section with the description of our packet-level data from a mobil
 	\includegraphics[width=0.8\linewidth]{voice_search_process}
 	\caption{Voice search engine infrastructure.}
 	\label{fig:voice_search}
+	\minsqueeze
 \end{figure}
 
 We collect mobile voice search data from one of the top 3 search service providers in China. This service provider serves more than 400 million users per day. A voice search initialized from a mobile terminal consists of two successive phases as shown in Figure~\ref{fig:voice_search}: \emph{voice recognition} (\ie recognize speech to query text) and \emph{web search} (\ie search with returned query text). Voice recognition and web search are served by different servers through HTTP. As such, a voice search session consists of two separate TCP flows.
@@ -27,6 +28,7 @@ All voice search requests are originated from mobile apps, especially from the A
 \includegraphics[width=0.8\linewidth]{voice_time_rate}
 \caption{Distribution of voice search requests in a day.}
 \label{fig:voice_time_rate}
+\minsqueeze
 \end{figure}
 
 Figure~\ref{fig:voice_time_rate} shows the distribution of voice search flows over time of a day. Flows are binned into 1-hour frame and we report the ratio of flows in each interval divided by the daily total. Not surprisingly, we observe a sharp increase of the search volume from 5AM to 10AM. The search volume from 3G remains relatively stable over the day and declines around 8PM, while we observe continuous growth of the WiFi search which reaches its peak at 7PM. The daily trend for web search flows is similar (not show). The daily search volume variation trend we observe is very similar to the one previously reported by \cite{Song:2013:EEU:2488388.2488493} for Bing mobile search.
@@ -48,6 +50,7 @@ Figure~\ref{fig:voice_time_rate} shows the distribution of voice search flows ov
 \end{subfigure}
 \caption{Time-line of a voice recognition flow and a web search flow.}
 \label{fig:time_line}
+\minsqueeze
 \end{figure}
 
 % For a voice search session, both the voice recognition and the web search phases contribute to the performance. However, they could have very distinct behavior as seen from the server-side. This is because as shown in Figure \ref{fig:time_line}, in the voice recognition phase, the server acts as a TCP receiver, while in the web search phase, the server is the sender. Note that TCP is largely a sender-driven transmission protocol and its transmission performance is affected by the ability of the sender to handle congestion events, as well as the ability of the receiver to receive data. We examine the TCP performance factors of each phase for individual voice search sessions and their impact on the flow \emph{flow completion time}.
@@ -73,6 +76,7 @@ Web search starts when a mobile terminal initiates a connection to transmit the 
 \end{subfigure}
 \caption{CDFs of flow completion time in the two phases.}
 \label{fig:finish_time}
+\minsqueeze
 \end{figure}
 
 
