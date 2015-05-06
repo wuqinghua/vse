@@ -7,7 +7,7 @@ We begin this section with the description of our packet-level data from a mobil
 
 \subsection{Data Collection}
 
-\begin{figure}[th]
+\begin{figure}[t]
 	\centering
 	\includegraphics[width=0.8\linewidth]{voice_search_process}
 	\caption{Voice search engine infrastructure.}
@@ -20,16 +20,16 @@ We collect packet-level traces from front-end servers\footnote{Note that our tra
 
 %We report measurement results for each of the two phases of voice search.
 
-All voice search requests are originated from mobile apps, especially from the Android platform, either via cellular or WiFi access network. About 2.5\% of the voice recognition flows and 6.7\% of the web search flows originate from the cellular network, made of a mixture of technologies: 2.5G, 3G and 4G\footnote{The cellular network type was inferred using the HTTP header field ``x-up-bear-type''.}. However, we observed a very limited number of 2.5G and 4G flows (less than 0.5\% of the total flows) in our data\footnote{Indeed, 4G is still in its initial stages of deployment in China and has limited coverage.} and thus omit them from our analysis. In total, they make up about 2.5\% of the flows.
+All voice search requests are originated from mobile apps, especially from the Android platform, either via cellular or WiFi access network. About 2.5\% of the voice recognition flows and 6.7\% of the web search flows originate from the cellular network, made of a mixture of technologies: 2.5G, 3G and 4G\footnote{The cellular network type was inferred using the HTTP header field ``x-up-bear-type''.}. However, we observed a very limited number of 2.5G and 4G flows (less than 0.5\% of the total flows) in our data\footnote{Indeed, 4G is still in its initial stages of deployment in China and has limited coverage.} and thus omit them from our analysis.
 
-\begin{figure}[th]
+\begin{figure}[t]
 \centering
 \includegraphics[width=0.8\linewidth]{voice_time_rate}
 \caption{Distribution of voice search requests in a day.}
 \label{fig:voice_time_rate}
 \end{figure}
 
-Figure~\ref{fig:voice_time_rate} shows the distribution of voice search flows over time of a day. Flows are binned into 1-hour frame and we report the ratio of flows in each interval divided by the daily total. Not surprisingly, we observe a sharp increase of the search volume from 5AM to 10AM. The search volume from 3G remains relatively stable over the day and declines around 10PM, while we observe continuous growth of the WiFi search which reaches its peak at 7PM. The daily trend for web search flows is similar (not show). The daily search volume variation trend we observe is very similar to the one previously reported by \cite{Song:2013:EEU:2488388.2488493} for Bing mobile search.
+Figure~\ref{fig:voice_time_rate} shows the distribution of voice search flows over time of a day. Flows are binned into 1-hour frame and we report the ratio of flows in each interval divided by the daily total. Not surprisingly, we observe a sharp increase of the search volume from 5AM to 10AM. The search volume from 3G remains relatively stable over the day and declines around 8PM, while we observe continuous growth of the WiFi search which reaches its peak at 7PM. The daily trend for web search flows is similar (not show). The daily search volume variation trend we observe is very similar to the one previously reported by \cite{Song:2013:EEU:2488388.2488493} for Bing mobile search.
 
 \subsection{TCP Performance Measures}
 
@@ -76,7 +76,7 @@ Web search starts when a mobile terminal initiates a connection to transmit the 
 \end{figure}
 
 
-Figure~\ref{fig:finish_time} plots the cumulative distribution (CDF) of the flow completion time of TCP flows in the two phases, where $x$-axis is in log scale. Interestingly, we find that in both phases 3G flows experience a shorter completion time than WiFi flows. Furthermore, some flows experience a very large completion time compared to others, displaying a heavy tailed behavior that was also found in Google search \cite{flach2013reducing}. For example, while most of the voice recognition flows finish in 100ms, a non-negligible fraction of flows (5\% in WiFi, and 2\% in 3G) take more than 1 second to upload the voice data. 
+Figure~\ref{fig:finish_time} plots the cumulative distribution (CDF) of the flow completion time of TCP flows in the two phases, where $x$-axis is in log scale. Interestingly, we find that in both phases 3G flows experience a shorter completion time than WiFi flows. Furthermore, some flows experience a very large completion time compared to others, displaying a heavy tailed behavior that was also found in Google search \cite{flach2013reducing}. For example, while most of the voice recognition flows finish in 100ms, a non-negligible fraction of flows (10\% in WiFi, and 5\% in 3G) take more than 0.5 second to upload the voice data. 
 
 %Figure~\ref{fig:web_finish_time} shows the CDF of flow completion time of web search flows. In the figure, the overall completion time of flows in 2G and 3G (with median values 0.013s and 0.011s) in also shorter than that of flows in WiFi network (with median value 0.2s). More than 25\% of flows in all networks experience completion time less than 0.1 second. However, 5\% of flows in 2G network and 18\% in WiFi network experience completion time more than 1 second. Furthermore, about 3\% of flows in WiFi network are with completion time more than 10 seconds, which is a great performance degradation.
 
@@ -91,7 +91,7 @@ We were motivated by the above observations to have an in-depth analysis of the 
 \begin{itemize}
 	\item {Round Trip Time (RTT):} RTT is a commonly used indicator of TCP performance, especially for short TCP flows like search flows.
 	
-	\item {Number of lost/disordered packets:} Both packet loss and packet reordering could affect the transmission time. Packet loss leads to a reduction of the sender congestion window. Although packet reordering does not reduce the congestion window, it can prevent the congestion window from growing and may trigger spurious retransmissions.
+	\item {Number of lost/reordered packets:} Both packet loss and packet reordering could affect the transmission time. Packet loss leads to a reduction of the sender congestion window. Although packet reordering does not reduce the congestion window, it can prevent the congestion window from growing and may trigger spurious retransmissions.
 	
 	\item {Timeout Retransmission:} In timeout retransmission, the TCP sender has to wait for a RTO (Retransmission Timeout) before retransmitting the lost packet. The RTO can be tens of RTTs. Such kind of ``expensive'' retransmissions can degrade TCP performance, especially for short flows like those considered in this paper~\cite{flach2013reducing}.
 
