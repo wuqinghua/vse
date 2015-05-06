@@ -17,7 +17,7 @@ To this end, we obtained a unique dataset from voice search servers in one of th
 
 \item The finish time in both voice recognition and web search is proportional to RTT when there is no packet loss. RTT however exhibits a large variation, especially in WiFi network. We observe the RTT of WiFi flows ranges from 10 ms to 400 ms with a median around 40 ms. 
 
-\item For those flows with packet loss, the finish time is dominated by the the time for loss recovery operations, especially by timeout retransmissions. We observe that WiFi flows are more likely to suffer from timeout retransmission than 3G flows due to the higher packet loss rate (3\% in WiFi vs 0.9\% in 3G). The timeout retransmissions can even happen during connection building, leading to an extremely large finish time.
+\item For those flows with packet loss, the finish time is dominated by the the time for loss recovery operations, especially by timeout retransmissions. We observe that WiFi flows are more likely to suffer from timeout retransmission than 3G flows due to the higher packet loss rate (3\% in WiFi vs 0.9\% in 3G). The timeout retransmissions can even happen during connection establishment, leading to an extremely large finish time.
 
 \item We classify timeout retransmission in web search flows into four types based on how they are triggered. Tail retransmission is the most common type in both WiFi flows (38.3\%) and 3G flows (69.6\%). However, double retransmission and packet delay retransmission are more likely to happen in WiFi flows (33.8\% and 27.4\% in WiFi versus 13.5\% and 16.1\% in 3G).
 
