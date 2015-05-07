@@ -8,15 +8,24 @@ In this section, we first summarise the findings from our analysis of voice reco
 Let us first summarize our main findings:
 
 \begin{itemize}
-	\item Flows in both voice recognition and web search are short. Ideally, voice recognition flows will complete in 2 RTTs (one for 3WHS, one for voice data upload), and web search flows will complete in no more than 5 RTTs (one for 3WHS, 4 for web search results). However, we see that more than 10\% of voice recognition flows take 0.5 second to complete, and 20\% of web search flows complete in 1 second.
+	\item Flows in both voice recognition and web search are short. As such, ideally they can complete in very few RTTs. 
+	%Ideally, voice recognition flows complete in 2 RTTs (one for 3WHS, one for voice data upload), and web search flows complete in no more than 5 RTTs (one for 3WHS, 4 for web search results). 
+	However, we see that more than 10\% of voice recognition flows take 0.5 second to complete, and 20\% of web search flows complete in 1 second.
 
 	\item Compared to flows in 3G, WiFi flows experience longer completion time, both for voice recognition and web search. This result is unexpected in light of previous work~\cite{deshpande2010performance,sommers2012cell}. The issues with WiFi flows are induced by both higher packet loss rate (3\% in WiFi versus 0.9\% in 3G) and larger RTTs.
 
 	\item WiFi flows suffer from less packet reordering in voice recognition, and more packet loss in web search than 3G flows. However, due to larger RTTs, senders in WiFi need more time to recover from these events.
 
-	\item In both voice recognition and web search, if there is no packet loss, the RTT is the key parameter for the flow completion time. When there is packet loss, WiFi flows are more likely to suffer from timeout retransmission. In this situation, timeout retransmission will dominate the flow completion time. Voice recognition flows suffer more timeout retransmissions than web search flows (6.7\% in voice recognition versus 4.1\% in web search). As most of voice recognition flows contain no more than 4 packets, even one lost packet may trigger tail retransmission. 
+	\item In both voice recognition and web search, if there is no packet loss, the RTT is the key parameter for the flow completion time. When there is packet loss, WiFi flows are more likely to suffer from timeout retransmission. In this situation, timeout retransmission will dominate the flow completion time.
 
 	\item Timeout retransmission can happen anywhere between the SYN and the last few data packets. In fact, tail retransmission contributes most of the timeout retransmissions in web search, especially for 3G flows. Double retransmission and packet delay retransmission on the other hand play a more important role for WiFi flows.
+	
+	\item Voice recognition flows are much shorter than web search flows (median size: 3 versus $9-19$). As such, given the same packet loss rate characteristic, voice recognition flows are more likely to suffer from timeout retransmissions as any packet loss in a voice recognition flow will lead to a tail retransmission. 	For instance, the percentage of 3G flows with timeout retransmissions in voice recognition and in web search is 6.1\% and 0.1\% respectively in our dataset.
+	
+	%Voice recognition flows suffer more timeout retransmissions than web search flows (6.7\% in voice recognition versus 4.1\% in web search). As most of voice recognition flows contain no more than 4 packets, even one lost packet may trigger tail retransmission. 
+	
+	
+	
 \end{itemize}
 
 The above findings can help service providers optimize the transmission performance for the voice search service. First, as smaller RTT leads to shorter completion time. For this, service providers can deploy front-end servers nearer to clients or ensure the lowest latency server is selected. Second, mobile applications can keep persistent TCP connections, which will mitigate the impact of SYN retransmission on user-perceived performance. Third, smarter strategies in the dynamic or joint selection of 3G and WiFi technologies (\eg, through multipath TCP) could be leveraged for more reliable service~\cite{UM-CS-2012-022,Chen:2013:MSM:2504730.2504751}, enabling dynamically offloading traffic from congested network segments without breaking existing connections. Fourth, service providers can deploy solutions such as TLP~\cite{flach2013reducing} to reduce the number of tail retransmissions in short flows. However, other types of timeout retransmission require significant effort from service providers for mitigation, such as redesigning TCP retransmission mechanisms to eliminate double retransmission, and cooperating with network providers to debug misbehaving middleboxes. Last but no least, due to TCP's sender driven nature, voice search service providers should adopt different strategies for performance optimizations in each phase of the TCP flow lifetime. For example, voice search applications would not modify the TCP stack, but would maintain a pool of TCP connections and take advantage of multipath TCP to reduce the flow completion time. In contrast, a web search server, being the sender in the connection, would modify the TCP mechanism to handle packet loss more efficiently and transmit more data packets per time unit.
